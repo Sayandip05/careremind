@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    restart: always
+
+  fastapi:
+    image: careremind/fastapi:latest
+    restart: always
+
+  django:
+    image: careremind/django:latest
+    restart: always
+
+  worker:
+    image: careremind/worker:latest
+    restart: always
+    deploy:
+      replicas: 2
+
+  scheduler:
+    image:_careremind/scheduler:latest
+    restart: always
+
+  whatsapp:
+    image: careremind/whatsapp:latest
+    restart: always
+
+  dashboard:
+    image: careremind/dashboard:latest
+    restart: always
+
+  landing:
+    image: careremind/landing:latest
+    restart: always
