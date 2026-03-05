@@ -1,18 +1,25 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey
+import uuid
+from sqlalchemy import Column, Date, DateTime, ForeignKey, String, Text
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 
 class Appointment(Base):
     __tablename__ = "appointments"
 
-    id = Column(String, primary_key=True)
-    tenant_id = Column(String, nullable=False)
-    patient_id = Column(String, ForeignKey("patients.id"))
-    visit_date = Column(DateTime)
-    next_visit_date = Column(DateTime)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True)
+    visit_date = Column(Date, nullable=False)
+    next_visit_date = Column(Date)
     specialty_override = Column(String)
-    notes_encrypted = Column(String)
-    source = Column(String)
-    created_by_role = Column(String)
-    created_at = Column(DateTime, server_default=func.now())
+    notes_encrypted = Column(Text)
+    source = Column(String, nullable=False, default="manual")  # excel | photo | manual
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    tenant = relationship("Tenant", back_populates="appointments")
+    patient = relationship("Patient", back_populates="appointments")
+    reminders = relationship("Reminder", back_populates="appointment", cascade="all, delete-orphan")
