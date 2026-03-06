@@ -1,7 +1,6 @@
 # ── Schemas Package ──────────────────────────────────────────
 from app.schemas.tenant import (
     TenantRegister,
-    LoginRequest,
     TokenResponse,
     TenantUpdate,
     TenantResponse,
@@ -29,7 +28,6 @@ from app.schemas.upload import (
 
 __all__ = [
     "TenantRegister",
-    "LoginRequest",
     "TokenResponse",
     "TenantUpdate",
     "TenantResponse",

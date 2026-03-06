@@ -1,9 +1,16 @@
 import uuid
-from sqlalchemy import Column, Date, DateTime, ForeignKey, String, Text
+import enum
+from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
+
+
+class UploadSource(str, enum.Enum):
+    EXCEL = "excel"
+    PHOTO = "photo"
+    MANUAL = "manual"
 
 
 class Appointment(Base):
@@ -16,7 +23,7 @@ class Appointment(Base):
     next_visit_date = Column(Date)
     specialty_override = Column(String)
     notes_encrypted = Column(Text)
-    source = Column(String, nullable=False, default="manual")  # excel | photo | manual
+    source = Column(Enum(UploadSource), nullable=False, default=UploadSource.MANUAL)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships

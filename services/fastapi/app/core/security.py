@@ -6,26 +6,11 @@ from cryptography.fernet import Fernet
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-
-# ── Password Hashing ────────────────────────────────────────
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def hash_password(password: str) -> str:
-    """Hash a plaintext password using bcrypt."""
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plaintext password against its bcrypt hash."""
-    return pwd_context.verify(plain_password, hashed_password)
-
 
 # ── JWT Tokens ───────────────────────────────────────────────
 def create_access_token(tenant_id: str, email: str) -> str:

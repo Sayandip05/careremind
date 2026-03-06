@@ -4,7 +4,7 @@
 
 from app.models.tenant import Tenant, PlanType
 from app.models.patient import Patient, PreferredChannel
-from app.models.appointment import Appointment
+from app.models.appointment import Appointment, UploadSource
 from app.models.reminder import Reminder, ReminderStatus, ChannelType
 from app.models.upload_log import UploadLog, UploadStatus
 from app.models.audit_log import AuditLog
@@ -15,6 +15,7 @@ __all__ = [
     "Patient",
     "PreferredChannel",
     "Appointment",
+    "UploadSource",
     "Reminder",
     "ReminderStatus",
     "ChannelType",

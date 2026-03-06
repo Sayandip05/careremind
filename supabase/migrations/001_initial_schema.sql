@@ -18,6 +18,7 @@ CREATE TYPE reminder_status AS ENUM (
 CREATE TYPE upload_status AS ENUM (
     'processing', 'completed', 'failed', 'partial'
 );
+CREATE TYPE upload_source AS ENUM ('excel', 'photo', 'manual');
 
 -- ============================================================
 -- TABLE: tenants (one row per doctor account)
@@ -28,7 +29,6 @@ CREATE TABLE tenants (
     doctor_name     TEXT NOT NULL,
     clinic_name     TEXT NOT NULL,
     email           TEXT UNIQUE NOT NULL,
-    password_hash   TEXT NOT NULL,
     phone           TEXT,
     specialty       TEXT,
     language_preference TEXT NOT NULL DEFAULT 'english',
@@ -62,6 +62,7 @@ CREATE TABLE patients (
 
 CREATE INDEX idx_patients_tenant_id ON patients (tenant_id);
 CREATE INDEX idx_patients_is_optout ON patients (tenant_id, is_optout);
+CREATE UNIQUE INDEX idx_patients_phone_tenant ON patients (tenant_id, phone_encrypted);
 
 -- ============================================================
 -- TABLE: appointments
@@ -75,7 +76,7 @@ CREATE TABLE appointments (
     next_visit_date     DATE,
     specialty_override  TEXT,
     notes_encrypted     TEXT,
-    source              TEXT NOT NULL DEFAULT 'manual',
+    source              upload_source NOT NULL DEFAULT 'manual',
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
