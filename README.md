@@ -1,210 +1,130 @@
-# CareRemind — AI-Powered Healthcare Reminder System
+# CareRemind — AI-Powered Patient Reminder System
 
----
-
-## Table of Contents
-
-1. [What is CareRemind?](#what-is-careremind)
-2. [The Problem We Solve](#the-problem-we-solve)
-3. [How It Works](#how-it-works)
-4. [Key Features](#key-features)
-5. [Architecture Overview](#architecture-overview)
-6. [Tech Stack](#tech-stack)
-7. [Project Structure](#project-structure)
-8. [Getting Started](#getting-started)
-9. [API Endpoints](#api-endpoints)
-10. [Database Schema](#database-schema)
-11. [Security](#security)
-12. [Multitenancy](#multitenancy)
-13. [Agent System](#agent-system)
-14. [WhatsApp Integration](#whatsapp-integration)
-15. [Development Guide](#development-guide)
-16. [Environment Variables](#environment-variables)
+> Automated WhatsApp and SMS appointment reminders for solo doctors in India.
+> Upload a photo or Excel file. AI does everything else.
 
 ---
 
 ## What is CareRemind?
 
-**CareRemind** is an enterprise-grade healthcare reminder system designed for clinics and doctors to automatically send appointment reminders to patients via WhatsApp. It uses AI to personalize reminders based on the doctor's specialty (dermatology, dental, pediatric, etc.) and supports multiple languages (English, Hindi, Bengali, Marathi, Tamil).
+CareRemind is a production-grade SaaS product built for **solo doctors and small clinics in India**. Doctors upload their patient register — as an Excel file or a phone photo — and the system automatically sends personalized appointment reminders to patients via WhatsApp or SMS.
 
-### Product Vision
-- **Free now, AWS-ready later** — Built with free services (Supabase, Render) but designed to swap to AWS with only config changes, no code rewrites
-- **Multi-tenant** — Multiple doctors/clinics can use the same system with complete data isolation
-- **Agentic AI** — Specialty-aware reminder strategies that adapt to different medical fields
-- **HIPAA-style security** — Patient phone numbers and notes encrypted at rest
+No manual calling. No missed appointments. No extra work for the doctor.
+
+### Who is this for?
+
+Solo doctors running independent clinics in tier 2 and tier 3 Indian cities who:
+- Lose revenue when patients forget follow-up appointments
+- Have no existing digital reminder system
+- Use WhatsApp daily but are not tech savvy
+- Cannot afford or justify enterprise clinic management software
 
 ---
 
-## The Problem We Solve
+## The Problem
 
-### For Doctors/Clinics
-1. **No-Show Patients** — Patients forget appointments, leading to lost revenue and inefficient schedules
-2. **Manual Reminders** — Staff spends hours calling each patient individually
-3. **Language Barriers** — Need to send reminders in patient's preferred language
-4. **Specialty-Specific Needs** - Different medical specialties require different reminder timing and content (dental vs skin checkups)
-5. **Staff Management** - Receptionists need limited access without seeing sensitive billing data
+Most small Indian clinics have zero patient follow-up system. Staff manually calls patients or nobody follows up at all. This leads to:
 
-### For Patients
-1. **Missed Appointments** - Forget scheduled visits, especially for follow-ups
-2. **Language Accessibility** - Receive reminders in their native language
-3. **Opt-Out Convenience** - Can easily reply "STOP" to opt out
+- Patients missing follow-up visits and never returning
+- Direct revenue loss for the doctor
+- Staff time wasted on manual calling
+- No record of who was reminded and who was not
+
+CareRemind solves this with one WhatsApp photo per day.
 
 ---
 
 ## How It Works
 
-### The Flow
-
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Doctor    │────▶│   Upload    │────▶│     AI      │────▶│  WhatsApp   │
-│   Uploads   │     │   Excel/    │     │   Processes │     │   Sends     │
-│   Patients  │     │   Photo     │     │   & Schedules│    │   Reminder  │
-└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+Doctor or receptionist
+clicks photo of patient register
+            ↓
+Sends photo to CareRemind WhatsApp bot
+            ↓
+AI reads photo — extracts name, phone, appointment date
+            ↓
+Deduplication check — skips already existing patients
+            ↓
+Reminders scheduled based on doctor specialty
+            ↓
+Patients receive personalized WhatsApp or SMS reminders
+            ↓
+Doctor receives daily summary report
 ```
-
-### Step-by-Step Process
-
-1. **Doctor uploads patient data** via Excel file or photo of appointment book
-2. **AI Agent processes the data**:
-   - Extracts patient names, phone numbers, next visit dates
-   - Deduplicates existing patients
-   - Detects language from patient name/region
-3. **Reminder Agent decides**:
-   - When to send (3 days before, 1 day before, etc.)
-   - What message to send based on doctor's specialty
-4. **Message Agent generates** the personalized message in the patient's language
-5. **WhatsApp service sends** the reminder via Meta Cloud API
-6. **Patient can reply** "STOP" to opt out
-
-### Specialty-Aware Reminders
-
-| Specialty | Timing | Message Focus |
-|-----------|--------|---------------|
-| Dermatology (Skin) | 3 days + 1 day before | Sun exposure warnings, skincare prep |
-| Dental | 2 days + 2 hours before | Don't eat before, bring X-rays |
-| Pediatric | 2 days + 1 day before | Gentle tone to parent |
-| Orthopedic | 3 days + 1 day before | Bring MRI/X-ray reports |
-| Eye Clinic | 1 day + 3 hours before | Arrange transport |
-| General Diagnosis | 2 days + morning of | Bring previous reports |
 
 ---
 
-## Key Features
+## V1 Scope (What Is Built Now)
 
-### Core Features
-- [x] Excel/CSV patient upload with deduplication
-- [x] Photo upload with OCR text extraction
-- [x] Automatic appointment date parsing
-- [x] WhatsApp message sending via Meta Cloud API
-- [x] Multi-language support (EN, HI, BN, MR, TA)
-- [x] Specialty-aware reminder strategies
-- [x] Opt-out handling (STOP replies)
-- [x] Rate limiting (max 20 msgs/minute)
-- [x] Retry failed reminders
-- [x] Daily summary reports for doctors
+This is Version 1. It is intentionally focused on the solo doctor use case only.
 
-### Security Features
-- [x] JWT-based authentication
-- [x] Role-based access control (Doctor, Receptionist, Admin)
-- [x] AES-256 field encryption for sensitive data
-- [x] Audit logging of all actions
-- [x] Row-level security in database
-- [x] Tenant isolation
+### Included in V1
 
-### Enterprise Features
-- [x] Multi-tenant architecture
-- [x] Staff/receptionist management
-- [x] Subscription/billing (Razorpay integration ready)
-- [x] Webhook handlers (WhatsApp, Razorpay)
-- [x] Prometheus metrics collection
-- [x] Grafana dashboards
-- [x] Sentry error tracking
+- Solo doctor account with JWT authentication
+- Excel file upload with automatic patient extraction
+- Photo upload with AI-powered OCR text extraction
+- Intelligent deduplication — no duplicate reminders ever
+- Specialty-aware reminder system (6 specialties)
+- Multilanguage reminders — English, Hindi, Bengali, Marathi, Tamil
+- WhatsApp reminders via Meta Cloud API
+- SMS fallback via Fast2SMS for patients without WhatsApp
+- Automatic channel detection — WhatsApp first, SMS fallback
+- Daily scheduler — reminders sent automatically every morning
+- Retry engine — failed reminders retried automatically
+- Doctor dashboard — upload, view patients, view reminder status
+- Daily summary report sent to doctor on WhatsApp
+- Anti-spam rules — no duplicate sends, opt-out handling
+- HIPAA-style encryption — patient phone numbers encrypted at rest
+- Audit logging — every action logged with timestamp
+- Background job processing — Celery + Redis queue
+- Docker containerization — all services
+- CI/CD pipeline — GitHub Actions
 
----
+### Not in V1 (Planned for V2 and V3)
 
-## Architecture Overview
-
-### System Design
-
-```
-                                    ┌──────────────────┐
-                                    │      Nginx       │
-                                    │  (Reverse Proxy)│
-                                    └────────┬─────────┘
-                                             │
-                    ┌──────────────────────────┼──────────────────────────┐
-                    │                          │                          │
-            ┌───────▼────────┐        ┌───────▼────────┐        ┌───────▼────────┐
-            │    FastAPI    │        │     Django     │        │   WhatsApp     │
-            │  (AI & Async) │        │ (Admin & Auth) │        │    Service     │
-            └───────┬────────┘        └───────┬────────┘        └───────┬────────┘
-                    │                         │                         │
-                    └─────────────────────────┼─────────────────────────┘
-                                              │
-                                    ┌─────────▼─────────┐
-                                    │   PostgreSQL       │
-                                    │   (Supabase)       │
-                                    └─────────┬─────────┘
-                                    ┌─────────▼─────────┐
-                                    │      Redis        │
-                                    │ (Cache + Queue)   │
-                                    └──────────────────┘
-                                              │
-                    ┌──────────────────────────┼──────────────────────────┐
-                    │                          │                          │
-            ┌───────▼────────┐        ┌───────▼────────┐        ┌───────▼────────┐
-            │    Celery      │        │   APScheduler  │        │   Frontend     │
-            │    Worker      │        │   (Scheduler)  │        │   (React)      │
-            └────────────────┘        └────────────────┘        └────────────────┘
-```
-
-### Services
-
-| Service | Port | Technology | Purpose |
-|---------|------|------------|---------|
-| FastAPI | 8000 | Python | AI processing, async API |
-| Django | 8001 | Python | Admin panel, auth, billing |
-| Worker | - | Python/Celery | Background job processing |
-| Scheduler | - | Python/APScheduler | Scheduled reminder jobs |
-| WhatsApp | 3001 | Node.js | Meta Cloud API integration |
-| Dashboard | 3000 | React/Vite | Doctor dashboard UI |
-| Landing | 3002 | Next.js | Marketing landing page |
+- Receptionist staff accounts and access management
+- Multi-doctor clinic support
+- Razorpay subscription billing (manual billing for now)
+- Grafana monitoring dashboards
+- Sentry error tracking
+- Kubernetes deployment
 
 ---
 
 ## Tech Stack
 
 ### Backend
-- **FastAPI** — Modern Python async web framework
-- **Django** — Full-featured Python web framework for admin
-- **SQLAlchemy** — Python ORM
-- **Celery** — Distributed task queue
-- **APScheduler** — Job scheduling
+| Service | Technology | Purpose |
+|---------|------------|---------|
+| FastAPI | Python 3.11 | AI processing, async API, agents |
+| Django | Python 3.11 | Admin panel, auth management |
+| Celery | Python | Background job processing |
+| APScheduler | Python | Scheduled daily reminder jobs |
+| WhatsApp Service | Node.js | Meta Cloud API integration |
 
-### Database & Cache
-- **PostgreSQL** — Primary database (via Supabase)
-- **Redis** — Cache and message broker
+### Database and Infrastructure
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| Database | PostgreSQL via Supabase | Primary data store |
+| Cache + Queue | Redis | Job queue and caching |
+| File Storage | Supabase Storage | Excel and photo uploads |
+| Hosting | Render (free tier) | Backend services |
+| Frontend | Vercel (free tier) | Dashboard and landing page |
+
+### AI and External Services
+| Service | Purpose | AWS Migration Path |
+|---------|---------|-------------------|
+| Groq (Llama 3) | Message generation | OpenAI (config change) |
+| Google Vision | Photo OCR | AWS Textract (config change) |
+| Meta Cloud API | WhatsApp sending | No migration needed |
+| Fast2SMS | SMS fallback | Twilio (config change) |
 
 ### Frontend
-- **React** — UI library (Dashboard)
-- **Next.js** — React framework (Landing page)
-- **Vite** — Build tool
-- **Tailwind CSS** — Styling
-- **Zustand** — State management
-- **Axios** — HTTP client
-
-### External Services
-- **Meta Cloud API** — WhatsApp messaging
-- **Groq** — LLM for message generation
-- **Google Vision** — OCR for photo uploads
-- **Razorpay** — Payment processing (ready)
-
-### Infrastructure
-- **Docker** — Containerization
-- **GitHub Actions** — CI/CD
-- **Prometheus** — Metrics
-- **Grafana** — Monitoring dashboards
+| App | Technology | URL |
+|-----|------------|-----|
+| Doctor Dashboard | React + Vite + Tailwind | app.careremind.in |
+| Landing Page | Next.js + Tailwind | careremind.in |
 
 ---
 
@@ -213,354 +133,176 @@
 ```
 careremind/
 │
-├── services/                    # Backend microservices
-│   ├── fastapi/                # AI & async API
-│   │   ├── app/
-│   │   │   ├── api/v1/        # API endpoints
-│   │   │   ├── agents/        # AI agents
-│   │   │   ├── specialty/     # Specialty strategies
-│   │   │   ├── languages/     # Language handlers
-│   │   │   ├── core/          # Config, DB, security
-│   │   │   ├── middleware/    # Auth, rate limiting
-│   │   │   ├── models/        # SQLAlchemy models
-│   │   │   ├── schemas/       # Pydantic schemas
-│   │   │   ├── services/      # Business logic
-│   │   │   └── utils/         # Helpers
-│   │   ├── tests/
-│   │   └── alembic/           # DB migrations
+├── services/
+│   ├── fastapi/                    # AI engine and async API
+│   │   └── app/
+│   │       ├── api/v1/             # All API endpoints
+│   │       ├── agents/             # AI agent system
+│   │       ├── specialty/          # Specialty reminder strategies
+│   │       ├── languages/          # Multilanguage handlers
+│   │       ├── core/               # Config, DB, security
+│   │       ├── middleware/         # Auth, rate limiting, audit
+│   │       ├── models/             # SQLAlchemy database models
+│   │       ├── schemas/            # Pydantic request/response schemas
+│   │       ├── services/           # Business logic layer
+│   │       └── utils/              # Phone formatter, date parser
 │   │
-│   ├── django/                 # Admin & Auth
-│   │   ├── careremind_admin/  # Django project
-│   │   │   └── settings/      # Settings configs
-│   │   ├── apps/              # Django apps
-│   │   │   ├── accounts/      # User auth
-│   │   │   ├── tenants/       # Tenant management
-│   │   │   ├── billing/       # Payments
-│   │   │   ├── staff/         # Staff management
-│   │   │   └── audit/         # Audit logs
-│   │   └── manage.py
+│   ├── django/                     # Admin panel and auth
+│   │   ├── careremind_admin/       # Django project settings
+│   │   └── apps/
+│   │       ├── accounts/           # Doctor authentication
+│   │       ├── tenants/            # Tenant management
+│   │       └── audit/              # Audit log viewer
 │   │
-│   ├── worker/                 # Celery worker
-│   │   ├── tasks/
-│   │   │   ├── excel_tasks.py
-│   │   │   ├── ocr_tasks.py
-│   │   │   ├── reminder_tasks.py
-│   │   │   └── cleanup_tasks.py
-│   │   └── celery_app.py
+│   ├── worker/                     # Celery background jobs
+│   │   └── tasks/
+│   │       ├── excel_tasks.py      # Excel processing
+│   │       ├── ocr_tasks.py        # Photo OCR processing
+│   │       ├── reminder_tasks.py   # Reminder sending
+│   │       └── cleanup_tasks.py    # Maintenance jobs
 │   │
-│   ├── scheduler/              # APScheduler jobs
-│   │   ├── jobs/
-│   │   │   ├── daily_reminder_job.py
-│   │   │   └── summary_report_job.py
-│   │   └── scheduler.py
+│   ├── scheduler/                  # Reminder scheduler
+│   │   └── jobs/
+│   │       ├── daily_reminder_job.py    # 9AM — send today's reminders
+│   │       ├── summary_report_job.py    # 9:30AM — doctor summary
+│   │       └── retry_failed_job.py      # 11AM — retry failures
 │   │
-│   └── whatsapp/              # Node.js WhatsApp service
+│   └── whatsapp/                   # Node.js WhatsApp service
 │       └── src/
-│           ├── sender.js       # Send messages
-│           ├── receiver.js    # Receive messages
-│           └── rate_limiter.js
+│           ├── sender.js           # Meta Cloud API sends
+│           ├── receiver.js         # Incoming message handler
+│           ├── optout_handler.js   # STOP reply handling
+│           └── rate_limiter.js     # Max 20 messages per minute
 │
-├── frontend/                   # Frontend applications
-│   ├── landing/               # Next.js landing page
-│   │   ├── app/              # Next.js app router
-│   │   ├── components/       # UI components
-│   │   └── lib/             # Utilities
-│   │
-│   └── dashboard/             # React dashboard
-│       ├── src/
-│       │   ├── pages/       # Page components
-│       │   ├── components/   # Reusable components
-│       │   ├── hooks/        # Custom React hooks
-│       │   ├── store/        # Zustand stores
-│       │   └── api/          # API clients
-│       └── vite.config.ts
+├── frontend/
+│   ├── landing/                    # Next.js marketing website
+│   └── dashboard/                  # React doctor dashboard
+│       └── src/
+│           ├── pages/              # Login, Dashboard, Upload, Patients, Reminders
+│           ├── components/         # Reusable UI components
+│           ├── hooks/              # Custom React hooks
+│           ├── store/              # Zustand state management
+│           └── api/                # Axios API clients
 │
-├── infrastructure/            # DevOps & Infrastructure
-│   ├── docker/               # Dockerfiles
-│   ├── nginx/                # Nginx configs
-│   ├── terraform/            # AWS IaC
-│   └── kubernetes/           # K8s manifests
+├── infrastructure/
+│   ├── nginx/                      # Reverse proxy config
+│   ├── terraform/                  # AWS IaC (ready, not active)
+│   └── kubernetes/                 # K8s manifests (future)
 │
-├── monitoring/               # Observability
-│   ├── prometheus/           # Metrics config
-│   ├── grafana/              # Dashboards
-│   └── sentry/               # Error tracking
+├── monitoring/
+│   ├── prometheus/                 # Metrics collection
+│   └── grafana/                    # Dashboards (V2)
 │
-├── .github/workflows/        # CI/CD pipelines
-│   ├── ci.yml               # Lint, test, type check
-│   ├── cd-staging.yml       # Deploy to staging
-│   └── cd-production.yml    # Deploy to production
+├── .github/workflows/
+│   ├── ci.yml                      # Lint, test, type check on every push
+│   ├── cd-staging.yml              # Deploy to staging on develop branch
+│   └── cd-production.yml           # Deploy to production on main branch
 │
-├── docker-compose.yml        # Local development
-├── docker-compose.prod.yml   # Production
-├── docker-compose.monitoring.yml
-├── Makefile                 # Developer shortcuts
-└── README.md                # This file
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- **Docker** and **Docker Compose** installed
-- **Node.js** 18+ (for frontend development)
-- **Python** 3.11+ (for local development)
-- **Git** for version control
-
-### Quick Start (Docker)
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd careremind
-
-# Copy environment variables
-cp .env.example .env
-
-# Start all services
-make dev
-
-# Or manually with docker-compose
-docker-compose up
-```
-
-### Access the Application
-
-| Service | URL | Description |
-|---------|-----|-------------|
-| Dashboard | http://localhost:3000 | Doctor dashboard |
-| Landing | http://localhost:3002 | Marketing page |
-| FastAPI | http://localhost:8000 | API docs |
-| Django Admin | http://localhost:8001/admin | Admin panel |
-| WhatsApp API | http://localhost:3001 | WhatsApp service |
-
-### Local Development Without Docker
-
-```bash
-# FastAPI
-cd services/fastapi
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-
-# Django
-cd services/django
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver 8001
-
-# Frontend
-cd frontend/dashboard
-npm install
-npm run dev
-
-# WhatsApp Service
-cd services/whatsapp
-npm install
-npm start
-```
-
----
-
-## API Endpoints
-
-### FastAPI Base URL: `http://localhost:8000/api/v1`
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/upload/excel` | Upload Excel file with patients |
-| POST | `/upload/photo` | Upload photo for OCR |
-| GET | `/patients` |
-| POST | `/patients` | List all patients | Create new patient |
-| GET | `/reminders` | List reminders |
-| POST | `/reminders/tr}` | Trigger reminderigger/{id manually |
-| GET | `/dashboard/stats` | Get dashboard statistics |
-| POST | `/webhooks/whatsapp` | WhatsApp webhook |
-| POST | `/webhooks/razorpay` | Razorpay webhook |
-| GET | `/health` | Health check |
-
-### Authentication
-
-All endpoints require JWT token in header:
-```
-Authorization: Bearer <token>
+├── docker-compose.yml              # Local development — all services
+├── docker-compose.prod.yml         # Production configuration
+├── Makefile                        # Developer shortcuts
+└── README.md
 ```
 
 ---
 
 ## Database Schema
 
-### Core Tables
-
 ```sql
--- Tenants (Clinics/Doctors)
-tenants (
-    id, clinic_name, email, specialty,
-    language_preference, whatsapp_number,
-    plan, is_active, created_at
-)
+-- Row Level Security enabled on all tables
+-- Every table filtered by tenant_id
 
--- Staff (Users)
-staff (
-    id, tenant_id, name, email,
-    role (doctor/receptionist/admin),
-    is_active, created_at
-)
+tenants
+  id, doctor_name, clinic_name, email,
+  specialty, language_preference,
+  whatsapp_number, plan,
+  trial_ends_at, is_active, created_at
 
--- Patients
-patients (
-    id, tenant_id, name,
-    phone_encrypted, language_preference,
-    is_optout, created_at
-)
+patients
+  id, tenant_id, name,
+  phone_encrypted,              -- AES-256 encrypted at rest
+  preferred_channel,            -- whatsapp | sms | both
+  has_whatsapp,                 -- auto detected
+  language_preference,          -- per patient override
+  is_optout, created_at
 
--- Appointments
-appointments (
-    id, tenant_id, patient_id,
-    visit_date, next_visit_date,
-    specialty_override, notes_encrypted,
-    source (excel/photo/manual), created_at
-)
+appointments
+  id, tenant_id, patient_id,
+  visit_date, next_visit_date,
+  specialty_override,           -- per visit specialty override
+  notes_encrypted,
+  source,                       -- excel | photo | manual
+  created_at
 
--- Reminders
-reminders (
-    id, tenant_id, appointment_id,
-    reminder_number (1/2),
-    status (Pending/Sent/Failed/Confirmed/Cancelled/Optout),
-    message_text, language_used,
-    scheduled_at, sent_at, error_log
-)
+reminders
+  id, tenant_id, appointment_id,
+  reminder_number,              -- 1 or 2
+  status,                       -- Pending | Sent | Failed | Confirmed | Cancelled | Optout
+  message_text, language_used,
+  channel,                      -- whatsapp | sms
+  scheduled_at, sent_at, error_log
 
--- Message Templates
-message_templates (
-    id, tenant_id, specialty, language,
-    template_name, meta_template_id,
-    body, is_active
-)
+upload_logs
+  id, tenant_id, filename, file_type,
+  total_rows, duplicates_skipped,
+  failed_rows, status, created_at
 
--- Upload Logs
-upload_logs (
-    id, tenant_id, filename, file_type,
-    total_rows, duplicates_skipped,
-    failed_rows, status, created_at
-)
-
--- Audit Logs
-audit_logs (
-    id, tenant_id, user_id, role,
-    action, resource, resource_id,
-    ip_address, user_agent, created_at
-)
+audit_logs
+  id, tenant_id, user_id,
+  action, resource, resource_id,
+  ip_address, created_at        -- append only, never deleted
 ```
 
 ---
 
-## Security
+## AI Agent System
 
-### Layer 1: Network
-- Nginx reverse proxy
-- Rate limiting (100 requests/minute/IP)
-- HTTPS only
-- CORS whitelist
+The system uses multiple specialized agents coordinated by a master orchestrator.
 
-### Layer 2: Authentication
-- JWT tokens with 24-hour expiry
-- Role embedded in token
+| Agent | File | Purpose |
+|-------|------|---------|
+| Orchestrator | `orchestrator.py` | Decides which agent runs for each task |
+| Excel Agent | `excel_agent.py` | Reads and validates Excel uploads |
+| OCR Agent | `ocr_agent.py` | Extracts text from prescription photos |
+| Reminder Agent | `reminder_agent.py` | Applies specialty reminder strategy |
+| Message Agent | `message_agent.py` | Generates multilanguage messages via Groq |
+| Dedup Agent | `dedup_agent.py` | Identifies and skips duplicate patients |
+| Report Agent | `report_agent.py` | Generates daily doctor summary |
 
-### Layer 3: Authorization (RBAC)
-- **Doctor**: Full access to own tenant
-- **Receptionist**: Upload, view patients/reminders only
-- **Superadmin**: All tenants via Django admin
+### Specialty Reminder Strategies
 
-### Layer 4: Multi-Tenancy
-- tenant_id in every request header
-- Automatic filtering of all queries
-- Supabase Row Level Security (RLS)
+Each medical specialty has its own timing and message strategy.
 
-### Layer 5: Data Encryption
-- AES-256 encryption for phone numbers and notes
-- Encryption key in environment variable
-- AWS KMS ready (swap config)
+| Specialty | Reminder Timing | Message Focus |
+|-----------|----------------|---------------|
+| Dermatology | 3 days + 1 day before | Avoid sun exposure, skincare prep |
+| Dental | 2 days + 2 hours before | Don't eat before, bring X-rays |
+| Pediatric | 2 days + 1 day before | Gentle tone, addressed to parent |
+| Orthopedic | 3 days + 1 day before | Bring MRI and X-ray reports |
+| Eye Clinic | 1 day + 3 hours before | Arrange transport, vision check |
+| General | 2 days + morning of | Bring previous reports |
 
-### Layer 6: Audit Logging
-- Every create/update/delete logged
-- User, role, IP, timestamp captured
-- Append-only (cannot be deleted)
-
-### Layer 7: Input Validation
-- Pydantic validation on all inputs
-- Phone number normalization
-- Strict date parsing
-- File type and size limits
-
----
-
-## Multitenancy
-
-### How It Works
-
-1. Each doctor/clinic is a **Tenant**
-2. Each tenant has a unique `tenant_id`
-3. Every API request must include `X-Tenant-ID` header
-4. All database queries automatically filter by tenant_id
-5. Staff accounts belong to a specific tenant
-
-### Tenant Isolation
+### Adding a New Specialty
 
 ```python
-# Example: Middleware injects tenant_id
-def get_patients(tenant_id: str):
-    return db.query(Patient).filter(Patient.tenant_id == tenant_id).all()
-```
+# services/fastapi/app/specialty/cardiology.py
+from app.specialty.base_specialty import BaseSpecialty
 
-### Switching Between Tenants
+class CardiologySpecialty(BaseSpecialty):
+    def get_reminder_timing(self) -> list[int]:
+        return [7, 3, 1]  # days before appointment
 
-```bash
-# Include tenant ID in requests
-curl -H "X-Tenant-ID: clinic_123" http://localhost:8000/api/v1/patients
-```
+    def get_message_template(self) -> str:
+        return "Your cardiology appointment is on {date}. Please bring your ECG reports."
 
----
-
-## Agent System
-
-### AI Agents
-
-The system uses multiple specialized agents:
-
-| Agent | Purpose |
-|-------|---------|
-| **Orchestrator** | Decides which agent to run |
-| **ExcelAgent** | Processes patient Excel uploads |
-| **OcrAgent** | Extracts text from photos |
-| **ReminderAgent** | Determines reminder timing/content per specialty |
-| **MessageAgent** | Generates messages in patient's language |
-| **DedupAgent** | Identifies duplicate patients |
-| **ReportAgent** | Creates daily summary reports |
-
-### Specialty Strategies
-
-Each medical specialty has its own reminder strategy:
-
-```python
-# Example: Dermatology (Skin)
-skin.py:
-    - Timing: 3 days before, 1 day before
-    - Message: "Remember to avoid sun exposure 24 hours before"
-    - Tone: Friendly
-
-# Example: Dental
-dental.py:
-    - Timing: 2 days before, 2 hours before  
-    - Message: "Don't eat 2 hours before, bring X-rays"
-    - Tone: Caring
+    def get_tone(self) -> str:
+        return "professional"
 ```
 
 ### Language Support
 
 | Language | Code | Greeting |
-|----------|------|----------|
+|----------|------|---------|
 | English | en | Hello |
 | Hindi | hi | नमस्ते |
 | Bengali | bn | নমস্কার |
@@ -569,204 +311,231 @@ dental.py:
 
 ---
 
-## WhatsApp Integration
+## Anti-Spam System
 
-### Meta Cloud API
+Proper WhatsApp usage requires strict anti-spam controls. CareRemind enforces:
 
-- Uses WhatsApp Business API via Meta
-- Pre-approved message templates required
-- Rate limit: 20 messages/minute
-- Webhook for incoming messages
+- One reminder per appointment per reminder slot — database status check before every send
+- Sending window — messages only sent between 9AM and 7PM IST
+- Meta approved templates — all messages use pre-approved WhatsApp templates
+- Opt-out handling — patient replies STOP, number blacklisted immediately and permanently
+- Rate limiting — maximum 20 messages per minute per WhatsApp number
+- Reminder timing — sent 2-3 days before, not same day morning
+- Confirmation handling — patient replies YES, marked Confirmed, no further messages
 
-### Opt-Out Handling
+---
 
-Patients can reply:
-- "STOP" — Opt out of all reminders
-- "UNSTOP" — Re-subscribe
+## Notification Channel Logic
 
-### Message Flow
-
-```python
-# 1. Doctor creates appointment
-# 2. ReminderAgent schedules reminders
-# 3. At scheduled time, Worker sends to WhatsApp service
-# 4. WhatsApp service calls Meta API
-# 5. Message delivered to patient
+```
+Patient record created
+        ↓
+Has WhatsApp? (auto detected via Meta API)
+        ↓
+YES → Send via WhatsApp (Meta Cloud API)
+        ↓
+NO or WhatsApp delivery failed?
+        ↓
+Fallback → Send via SMS (Fast2SMS)
+        ↓
+Both failed → Log as Failed
+Doctor sees failure on dashboard
 ```
 
 ---
 
-## Development Guide
+## Security Architecture
 
-### Adding a New Specialty
+| Layer | What It Does |
+|-------|-------------|
+| Network | Nginx reverse proxy, HTTPS only, CORS whitelist |
+| Authentication | JWT tokens, 24 hour expiry, role embedded in token |
+| Authorization | RBAC — doctor has full access to own tenant only |
+| Multi-tenancy | tenant_id on every query + Supabase Row Level Security |
+| Encryption | AES-256 for patient phone numbers and notes at rest |
+| Audit logging | Every create/update/delete logged, append-only |
+| Input validation | Pydantic on all inputs, phone normalization, file type limits |
 
-1. Create new file in `services/fastapi/app/specialty/`
-2. Extend `BaseSpecialty` class
-3. Define reminder timing and message template
-4. Register in the specialty factory
+---
 
-```python
-# services/fastapi/app/specialty/cardiology.py
-from app.specialty.base_specialty import BaseSpecialty
+## AWS Migration Path
 
-class CardiologySpecialty(BaseSpecialty):
-    def get_reminder_timing(self):
-        return [7, 3, 1]  # 7 days, 3 days, 1 day before
-    
-    def get_message_template(self):
-        return "Your cardiology appointment is on {date}. Bring ECG reports."
-    
-    def get_tone(self):
-        return "professional"
+This project is built free-first but AWS-ready. Every service has a direct AWS equivalent requiring only a config change — no code rewrite.
+
+| Current (Free) | AWS Equivalent | Config Change |
+|----------------|----------------|---------------|
+| Supabase Storage | AWS S3 | `STORAGE_BACKEND=s3` |
+| Google Vision | AWS Textract | `VISION_BACKEND=textract` |
+| Supabase PostgreSQL | AWS RDS | `DATABASE_URL=...rds...` |
+| Redis on Render | AWS ElastiCache | `REDIS_URL=...elasticache...` |
+| Render hosting | AWS ECS | Use existing Dockerfiles |
+| Env key encryption | AWS KMS | One line change in `encryption_service.py` |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Node.js 18+
+- Python 3.11+
+
+### Quick Start
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd careremind
+
+# Copy environment variables
+cp .env.example .env
+# Fill in required values in .env
+
+# Start all services
+make dev
+
+# Run database migrations
+make migrate
 ```
 
-### Adding a New Language
+### Local Service URLs
 
-1. Create new file in `services/fastapi/app/languages/`
-2. Extend `BaseLanguage` class
-3. Implement format_date() and get_greeting()
+| Service | URL |
+|---------|-----|
+| Doctor Dashboard | http://localhost:3000 |
+| Landing Page | http://localhost:3002 |
+| FastAPI Docs | http://localhost:8000/docs |
+| Django Admin | http://localhost:8001/admin |
 
-### Adding a New API Endpoint
+---
 
-1. Create or modify file in `services/fastapi/app/api/v1/`
-2. Define Pydantic schemas in `services/fastapi/app/schemas/`
-3. Register route in `services/fastapi/app/api/v1/router.py`
+## API Endpoints
 
-### Adding a New Frontend Page
+Base URL: `http://localhost:8000/api/v1`
 
-1. Create component in `frontend/dashboard/src/pages/`
-2. Add route in `frontend/dashboard/src/App.tsx`
-3. Create API client in `frontend/dashboard/src/api/`
+All endpoints require: `Authorization: Bearer <jwt_token>`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/upload/excel` | Upload Excel file with patient data |
+| POST | `/upload/photo` | Upload photo for OCR extraction |
+| GET | `/patients` | List all patients for tenant |
+| POST | `/patients` | Create single patient manually |
+| GET | `/reminders` | List all reminders with status |
+| POST | `/reminders/trigger/{id}` | Manually trigger a reminder |
+| GET | `/dashboard/stats` | Dashboard statistics |
+| POST | `/webhooks/whatsapp` | Incoming WhatsApp webhook |
+| GET | `/health` | Health check |
 
 ---
 
 ## Environment Variables
 
-### Required Variables
-
 ```bash
+# .env.example — copy to .env and fill in values
+
 # Database
 DATABASE_URL=postgresql://user:password@host:5432/careremind
 
-# Redis
+# Cache and Queue
 REDIS_URL=redis://localhost:6379
 
-# JWT
-JWT_SECRET_KEY=your-secret-key
+# Authentication
+JWT_SECRET_KEY=your-secret-key-minimum-32-chars
 JWT_EXPIRY_HOURS=24
 
-# Encryption
-FIELD_ENCRYPTION_KEY=your-256-bit-key
+# Patient Data Encryption
+FIELD_ENCRYPTION_KEY=your-256-bit-encryption-key
 
-# Groq (LLM)
-GROQ_API_KEY=your-groq-key
+# AI — Message Generation
+GROQ_API_KEY=your-groq-api-key
 
 # WhatsApp
-META_WHATSAPP_TOKEN=your-token
-META_PHONE_NUMBER_ID=your-phone-id
-```
+META_WHATSAPP_TOKEN=your-meta-token
+META_PHONE_NUMBER_ID=your-phone-number-id
 
-### Optional Variables
+# SMS Fallback
+FAST2SMS_API_KEY=your-fast2sms-key
 
-```bash
-# Storage (default: local)
-STORAGE_BACKEND=local  # or s3
+# Vision OCR
+VISION_BACKEND=google
+GOOGLE_VISION_KEY=your-google-vision-key
 
-# Vision OCR (default: google)
-VISION_BACKEND=google  # or textract
+# Storage
+STORAGE_BACKEND=local
 
-# Payments
-RAZORPAY_KEY_ID=your-key
-RAZORPAY_SECRET=your-secret
+# AWS (leave empty until migration)
+AWS_S3_BUCKET=
+AWS_ACCESS_KEY=
+AWS_SECRET_KEY=
+AWS_TEXTRACT_REGION=
 
-# Monitoring
-SENTRY_DSN=your-sentry-dsn
-```
-
----
-
-## Common Tasks
-
-### Run Tests
-```bash
-make test
-```
-
-### Run Migrations
-```bash
-make migrate
-```
-
-### View Logs
-```bash
-make logs
-```
-
-### Rebuild Containers
-```bash
-make build
-```
-
-### Clean Up
-```bash
-make clean
-```
-
-### Open FastAPI Shell
-```bash
-make shell
-```
-
-### Open Django Shell
-```bash
-make admin
+# Monitoring (leave empty for now)
+SENTRY_DSN=
 ```
 
 ---
 
-## Contributing
+## CI/CD Pipeline
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
-
-### Code Quality
-
-- Python: Use `ruff` for linting
-- TypeScript: Use `eslint` and `prettier`
-- Run lint before commit:
-  ```bash
-  # Python
-  ruff check services/fastapi/
-  
-  # TypeScript
-  npm run lint
-  ```
-
----
-
-## License
-
-Private — All rights reserved
+```
+Push to any branch
+        ↓
+ci.yml — Python linting (ruff), type checking (mypy),
+         pytest, Django tests, TypeScript check, Docker build test
+        ↓
+Push to develop branch
+        ↓
+cd-staging.yml — Build images, push to GitHub Container Registry,
+                 deploy to Render staging, run smoke tests
+        ↓
+Push to main branch (requires manual approval)
+        ↓
+cd-production.yml — Build production images,
+                    run database migrations,
+                    deploy to Render production
+```
 
 ---
 
-## Support
+## Makefile Commands
 
-For issues and questions:
-- Report bugs via GitHub Issues
-- Check architecture docs in `careremind-complete-structure.md`
+```bash
+make dev        # Start all services locally
+make test       # Run all tests
+make migrate    # Run database migrations
+make build      # Build all Docker images
+make logs       # Tail all service logs
+make shell      # Open FastAPI Python shell
+make admin      # Open Django admin shell
+make clean      # Stop and remove all containers
+```
 
 ---
 
 ## Roadmap
 
-See `careremind-complete-structure.md` for detailed 10-week build plan:
+### V1 — Solo Doctor (Current)
+Excel upload, photo OCR, WhatsApp + SMS reminders, specialty system, multilanguage, dashboard, audit logs, Docker, CI/CD.
 
-- Week 1-2: FastAPI skeleton + auth
-- Week 3-4: Excel upload + WhatsApp
-- Week 5-6: Specialty system + Django admin
-- Week 7-8: React dashboard + landing page
-- Week 9-10: Monitoring + CI/CD + testing
+### V2 — Add Receptionist
+Receptionist staff accounts with limited access. Doctor invites receptionist via email. Receptionist can upload and view only.
+
+### V3 — Multi-Doctor Clinic
+Multiple doctors under one clinic account. Owner doctor manages billing. Each doctor sees only their own patients.
+
+### V4 — Scale
+Razorpay subscription billing automated. Kubernetes deployment. Full Grafana monitoring. AWS migration.
+
+---
+
+## License
+
+Private — All rights reserved. This is a commercial product.
+
+---
+
+## Contact
+
+For technical issues or questions contact via WhatsApp only.

@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Boolean, Column, DateTime, Enum, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -21,7 +21,6 @@ class Tenant(Base):
     doctor_name = Column(String, nullable=False)
     clinic_name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False, index=True)
-    password_hash = Column(String, nullable=False)
     phone = Column(String)
     specialty = Column(String)
     language_preference = Column(String, nullable=False, default="english")
