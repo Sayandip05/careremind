@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
 router = APIRouter()
 
 
 @router.post("/process")
-async def process_with_agent(data: dict, tenant_id: str = Depends(lambda: "default")):
+async def process_with_agent(data: dict):
     return {"status": "processed", "agent": "orchestrator"}
