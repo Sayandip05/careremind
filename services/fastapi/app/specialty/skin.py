@@ -1,12 +1,20 @@
-from app.specialty.base_specialty import BaseSpecialty
+from app.specialty.base_specialty import BaseSpecialty, ReminderTiming
 
 
 class SkinSpecialty(BaseSpecialty):
-    def get_reminder_timing(self):
-        return [3, 1]
+    def get_specialty_name(self) -> str:
+        return "Dermatology"
 
-    def get_message_template(self):
-        return "Your skin checkup is on {date}. Remember to avoid sun exposure 24 hours before visit."
+    def get_reminder_timing(self) -> list[ReminderTiming]:
+        return [
+            ReminderTiming(days_before=1, label="1-day reminder"),
+        ]
 
-    def get_tone(self):
-        return "friendly"
+    def get_pre_visit_instructions(self) -> str:
+        return "Please avoid applying any creams, makeup, or ointments on the affected area before your appointment."
+
+    def get_tone(self) -> str:
+        return "gentle"
+
+    def get_default_followup_days(self) -> int:
+        return 14
