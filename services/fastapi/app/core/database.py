@@ -20,6 +20,9 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,
 )
 
+# Alias for worker/scheduler tasks (used outside FastAPI Depends)
+async_session = AsyncSessionLocal
+
 # ── Declarative Base ─────────────────────────────────────────
 Base = declarative_base()
 
