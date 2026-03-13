@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr, Field
 # ── Registration & Auth ──────────────────────────────────────
 
 class TenantRegister(BaseModel):
-    """Schema for doctor registration — sent to Django for account creation."""
+    """Schema for doctor registration."""
     doctor_name: str = Field(..., min_length=2, max_length=100)
     clinic_name: str = Field(..., min_length=2, max_length=200)
     email: EmailStr
@@ -15,14 +15,23 @@ class TenantRegister(BaseModel):
     specialty: Optional[str] = None
     language_preference: str = Field(default="english")
     whatsapp_number: Optional[str] = None
+    password: str = Field(..., min_length=8)
+
 
 
 class TokenResponse(BaseModel):
-    """JWT token returned after Django authenticates the doctor."""
+    """JWT token response."""
     access_token: str
     token_type: str = "bearer"
     tenant_id: str
     doctor_name: str
+
+
+class TenantLogin(BaseModel):
+    """Schema for doctor login."""
+    email: EmailStr
+    password: str
+
 
 
 # ── Tenant CRUD ──────────────────────────────────────────────

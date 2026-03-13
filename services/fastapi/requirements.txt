@@ -16,6 +16,8 @@ email-validator==2.1.0
 # ── Authentication & Security ────────────────────────────────
 python-jose[cryptography]==3.3.0
 cryptography==41.0.7
+passlib[bcrypt]==1.7.4
+
 
 # ── Background Jobs ─────────────────────────────────────────
 celery==5.3.4

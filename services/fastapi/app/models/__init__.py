@@ -8,6 +8,7 @@ from app.models.appointment import Appointment, UploadSource
 from app.models.reminder import Reminder, ReminderStatus, ChannelType
 from app.models.upload_log import UploadLog, UploadStatus
 from app.models.audit_log import AuditLog
+from app.models.payment import Payment
 
 __all__ = [
     "Tenant",
@@ -22,4 +23,5 @@ __all__ = [
     "UploadLog",
     "UploadStatus",
     "AuditLog",
+    "Payment",
 ]

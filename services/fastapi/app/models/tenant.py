@@ -25,6 +25,8 @@ class Tenant(Base):
     specialty = Column(String)
     language_preference = Column(String, nullable=False, default="english")
     whatsapp_number = Column(String)
+    hashed_password = Column(String, nullable=False)
+    email_marketing = Column(Boolean, nullable=False, default=True)
     plan = Column(Enum(PlanType), nullable=False, default=PlanType.FREE)
     trial_ends_at = Column(DateTime(timezone=True))
     is_active = Column(Boolean, nullable=False, default=True)

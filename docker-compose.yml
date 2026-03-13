@@ -8,7 +8,6 @@ services:
       - "443:443"
     depends_on:
       - fastapi
-      - django
       - dashboard
       - landing
     volumes:
@@ -25,17 +24,6 @@ services:
       - redis
     volumes:
       - ./services/fastapi:/app
-
-  django:
-    build: ./services/django
-    ports:
-      - "8001:8001"
-    env_file:
-      - .env
-    depends_on:
-      - postgres
-    volumes:
-      - ./services/django:/app
 
   worker:
     build: ./services/worker
@@ -57,14 +45,6 @@ services:
     volumes:
       - ./services/scheduler:/app
 
-  whatsapp:
-    build: ./services/whatsapp
-    ports:
-      - "3001:3001"
-    env_file:
-      - .env
-    volumes:
-      - ./services/whatsapp:/app
 
   dashboard:
     build: ./frontend/dashboard
