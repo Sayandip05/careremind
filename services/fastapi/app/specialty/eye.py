@@ -7,7 +7,8 @@ class EyeSpecialty(BaseSpecialty):
 
     def get_reminder_timing(self) -> list[ReminderTiming]:
         return [
-            ReminderTiming(days_before=1, label="1-day reminder"),
+            ReminderTiming(days_after=7, label="7-day follow-up"),
+            ReminderTiming(days_after=30, label="30-day follow-up"),
         ]
 
     def get_pre_visit_instructions(self) -> str:

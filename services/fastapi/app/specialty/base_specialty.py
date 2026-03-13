@@ -9,19 +9,16 @@ from typing import Optional
 
 
 class ReminderTiming:
-    """A single reminder timing offset."""
+    """A single reminder timing offset — days after the visit date."""
 
-    def __init__(self, days_before: int = 0, hours_before: int = 0, label: str = ""):
-        self.days_before = days_before
-        self.hours_before = hours_before
-        self.label = label or f"{days_before}d-{hours_before}h"
+    def __init__(self, days_after: int, label: str = ""):
+        self.days_after = days_after
+        self.label = label or f"{days_after}-day"
 
     def get_scheduled_at(self, visit_date: date) -> datetime:
-        """Calculate the actual datetime to send this reminder."""
-        # Convert date to datetime at 9:00 AM IST (typical clinic morning)
-        visit_dt = datetime.combine(visit_date, datetime.min.time().replace(hour=9))
-        offset = timedelta(days=self.days_before, hours=self.hours_before)
-        return visit_dt - offset
+        """Calculate the actual datetime to send this reminder (9:00 AM IST)."""
+        reminder_date = visit_date + timedelta(days=self.days_after)
+        return datetime.combine(reminder_date, datetime.min.time().replace(hour=9))
 
 
 class BaseSpecialty(ABC):

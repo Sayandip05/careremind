@@ -1,11 +1,13 @@
 """
 Reminder Agent — Creates Reminder records for appointments
 based on the doctor's specialty timing rules.
+
+Timing model: reminders fire AFTER the visit date (7 days, 30 days).
 """
 
 import logging
 import uuid
-from datetime import date, timedelta
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,26 +32,27 @@ class ReminderAgent:
         """
         Create Reminder records for an appointment.
 
-        Uses the tenant's specialty (or appointment's specialty_override)
-        to determine timing. Each timing offset creates one Reminder.
+        Timing: 1st reminder 7 days after visit, 2nd 30 days after visit.
+        Uses visit_date (the date patient came in).
         """
-        visit_date = appointment.next_visit_date
+        visit_date = appointment.visit_date
         if not visit_date:
-            logger.info("No next_visit_date for appointment %s — skipping", appointment.id)
+            logger.info("No visit_date for appointment %s — skipping", appointment.id)
             return []
 
         # Determine specialty
-        specialty_name = appointment.specialty_override or tenant.specialty
+        specialty_name = getattr(appointment, "specialty_override", None) or tenant.specialty
         specialty = get_specialty(specialty_name)
 
         timings = specialty.get_reminder_timing()
         created: list[Reminder] = []
+        reminder_number = 0
 
         for timing in timings:
+            reminder_number += 1
             scheduled_at = timing.get_scheduled_at(visit_date)
 
             # Skip if scheduled_at is in the past
-            from datetime import datetime
             if scheduled_at < datetime.now():
                 logger.info(
                     "Skipping past reminder: %s for appointment %s",
@@ -57,7 +60,7 @@ class ReminderAgent:
                 )
                 continue
 
-            # Check for duplicate (same appointment + same timing label)
+            # Check for duplicate (same appointment + same scheduled_at)
             existing = await db.execute(
                 select(Reminder).where(
                     Reminder.appointment_id == appointment.id,
@@ -73,6 +76,7 @@ class ReminderAgent:
                 id=str(uuid.uuid4()),
                 tenant_id=str(tenant.id),
                 appointment_id=appointment.id,
+                reminder_number=reminder_number,
                 channel="whatsapp",
                 scheduled_at=scheduled_at,
                 status=ReminderStatus.PENDING,
@@ -83,8 +87,9 @@ class ReminderAgent:
         await db.flush()
 
         logger.info(
-            "Created %d reminders for appointment %s (%s specialty)",
+            "Created %d reminders for appointment %s (%s — %s)",
             len(created), appointment.id, specialty.get_specialty_name(),
+            ", ".join(t.label for t in timings),
         )
 
         return created
