@@ -128,6 +128,77 @@ This is Version 1. It is intentionally focused on the solo doctor use case only.
 
 ---
 
+## High Level Design (HLD)
+
+The CareRemind architecture is designed to handle asynchronous tasks (like AI OCR and Excel parsing) separately from fast API requests, ensuring the mobile-friendly dashboard remains responsive.
+
+```mermaid
+graph TD
+    %% Actors
+    Doc[Doctor / Receptionist]
+    Patient[Patient]
+
+    %% Frontends
+    subgraph Frontend CDN
+        Land[Landing Page]
+        Dash[Doctor Dashboard]
+    end
+
+    %% Backend Services
+    subgraph Backend Services
+        API[FastAPI Backend]
+        Worker[Celery Worker]
+        Cron[APScheduler Jobs]
+        Admin[Django Admin]
+    end
+
+    %% Storage & Queue
+    subgraph Infrastructure
+        PG[(PostgreSQL)]
+        Redis[(Redis Queue/Cache)]
+        Store[Supabase Storage]
+    end
+
+    %% External APIs
+    subgraph External APIs
+        Groq[Groq Llama 3]
+        Vision[Google Vision OCR]
+        Meta[WhatsApp Cloud API]
+        SMS[Fast2SMS]
+    end
+
+    %% Connections - Frontend
+    Doc -->|Logs in, Uploads Data| Dash
+    Land -->|Redirects to| Dash
+    Dash <-->|REST API| API
+    Admin <-->|Direct DB Access| PG
+
+    %% Connections - Core Logic
+    API <-->|Reads/Writes| PG
+    API -->|Enqueues Tasks| Redis
+    Redis -->|Consumes Tasks| Worker
+    Cron -->|Triggers Daily Reminders| Redis
+
+    %% Connections - Storage
+    API -->|Uploads Excel/Photo| Store
+    Worker -->|Downloads for Processing| Store
+
+    %% Connections - AI
+    Worker <-->|Generates Messages| Groq
+    Worker <-->|Extracts Text from Photos| Vision
+
+    %% Connections - Delivery
+    Worker -->|Sends Reminders| Meta
+    Worker -->|Fallback SMS| SMS
+    Meta -->|Delivers| Patient
+    SMS -->|Delivers| Patient
+
+    %% Webhooks
+    Meta -->|Delivery Status & Replies| API
+```
+
+---
+
 ## Project Structure
 
 ```

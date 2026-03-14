@@ -30,7 +30,7 @@ export default function App() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <a className="hidden md:inline-flex items-center justify-center px-6 py-2.5 bg-primary text-white font-medium rounded hover:bg-green-700 transition-colors" href="#">
+          <a className="hidden md:inline-flex items-center justify-center px-6 py-2.5 bg-primary text-white font-medium rounded hover:bg-green-700 transition-colors" href="http://localhost:3000/login">
             Start Free Trial
           </a>
           <button className="md:hidden p-2 text-slate-600 hover:text-slate-900">
@@ -49,10 +49,10 @@ export default function App() {
             Just send a WhatsApp photo of your daily register. Our AI handles everything.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a className="w-full sm:w-auto px-8 py-3.5 bg-black text-white font-semibold rounded-full hover:bg-slate-800 transition-colors" href="#">
+            <a className="w-full sm:w-auto px-8 py-3.5 bg-black text-white font-semibold rounded-full hover:bg-slate-800 transition-colors" href="http://localhost:3000/login">
               Get 14 Days Free Trial
             </a>
-            <a className="w-full sm:w-auto px-8 py-3.5 bg-white text-black border border-slate-200 font-semibold rounded-full hover:bg-slate-50 transition-colors shadow-sm" href="#">
+            <a className="w-full sm:w-auto px-8 py-3.5 bg-white text-black border border-slate-200 font-semibold rounded-full hover:bg-slate-50 transition-colors shadow-sm" href="http://localhost:3000/login">
               Book A Demo
             </a>
           </div>

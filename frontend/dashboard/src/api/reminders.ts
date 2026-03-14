@@ -1,4 +1,9 @@
 import client from './client';
 
-export const getReminders = () => client.get('/reminders');
-export const triggerReminder = (id) => client.post(`/reminders/trigger/${id}`);
+export const remindersApi = {
+  list: (page = 1, perPage = 20, status?: string) => {
+    let url = `/reminders?page=${page}&per_page=${perPage}`;
+    if (status) url += `&status=${status}`;
+    return client.get(url);
+  },
+};
