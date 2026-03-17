@@ -116,7 +116,7 @@ This is Version 1. It is intentionally focused on the solo doctor use case only.
 | Service | Purpose | AWS Migration Path |
 |---------|---------|-------------------|
 | Groq (Llama 3) | Message generation | OpenAI (config change) |
-| Google Vision | Photo OCR | AWS Textract (config change) |
+| NVIDIA Gemma 3 | Photo OCR | AWS Textract (config change) |
 | Meta Cloud API | WhatsApp sending | No migration needed |
 | Fast2SMS | SMS fallback | Twilio (config change) |
 
@@ -162,7 +162,7 @@ graph TD
     %% External APIs
     subgraph External APIs
         Groq[Groq Llama 3]
-        Vision[Google Vision OCR]
+        Vision[NVIDIA Gemma 3 OCR]
         Meta[WhatsApp Cloud API]
         SMS[Fast2SMS]
     end
@@ -530,8 +530,8 @@ META_PHONE_NUMBER_ID=your-phone-number-id
 FAST2SMS_API_KEY=your-fast2sms-key
 
 # Vision OCR
-VISION_BACKEND=google
-GOOGLE_VISION_KEY=your-google-vision-key
+VISION_BACKEND=nvidia
+NVIDIA_API_KEY=your-nvidia-api-key
 
 # Storage
 STORAGE_BACKEND=local

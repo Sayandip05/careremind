@@ -149,7 +149,7 @@ app/
 ## AI Pipeline (Unique Selling Point) ✅
 - **Orchestrator Agent** — routes upload to correct pipeline
 - **Excel Agent** — parses `.xlsx` with flexible column mapping
-- **OCR Agent** — GPT-4o Mini vision API extracts patient data from register photos
+- **OCR Agent** — NVIDIA Gemma 3 vision API extracts patient data from register photos
 - **Dedup Agent** — fuzzy matching on name + phone to prevent duplicates
 - **Reminder Agent** — creates reminders at 7 days and 30 days after visit
 - **Message Agent** — generates multilingual messages (5 languages) with optional GPT polish
