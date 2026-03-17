@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -42,7 +41,8 @@ class Settings(BaseSettings):
     FAST2SMS_API_KEY: str = ""
 
     # ── Vision OCR ───────────────────────────────────────────
-    VISION_BACKEND: str = "google"  # google | textract
+    VISION_BACKEND: str = "nvidia"  # nvidia | openai | textract
+    NVIDIA_API_KEY: str = ""
     GOOGLE_VISION_KEY: str = ""
 
     # ── Storage ──────────────────────────────────────────────

@@ -1,6 +1,7 @@
 """
 OCR Agent — Extracts patient data from photos of patient registers.
-Uses OpenAI GPT-4o Mini vision to read handwritten/printed text.
+Primary: NVIDIA Gemma-3-27b-it vision
+Fallback: OpenAI GPT-4o Mini vision
 """
 
 import base64
@@ -8,6 +9,7 @@ import json
 import logging
 from typing import Any
 
+from app.services.nvidia_service import nvidia_service
 from app.services.openai_service import openai_service
 from app.utils.date_parser import parse_date
 from app.utils.phone_formatter import normalize_phone
@@ -41,11 +43,14 @@ Rules:
 
 
 class OcrAgent:
-    """Extracts patient data from register photos using GPT-4o Mini vision."""
+    """Extracts patient data from register photos.
+    Primary: NVIDIA Gemma 3 | Fallback: OpenAI GPT-4o Mini
+    """
 
     async def extract(self, image_bytes: bytes) -> dict:
         """
-        Send image to OpenAI vision and parse the response.
+        Send image to vision API and parse the response.
+        Tries NVIDIA first, falls back to OpenAI if NVIDIA fails.
 
         Returns:
             {
@@ -54,6 +59,7 @@ class OcrAgent:
                 "skipped": int,
                 "errors": [str, ...],
                 "raw_response": str,
+                "provider": str,
             }
         """
         errors: list[str] = []
@@ -61,25 +67,37 @@ class OcrAgent:
         # Encode image to base64
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
-        # Call GPT-4o Mini vision
-        raw_response = await openai_service.vision(
+        # Try NVIDIA first
+        provider = "nvidia"
+        raw_response = await nvidia_service.vision(
             image_base64=image_b64,
             prompt="Extract all patient entries from this clinic register photo.",
             system=OCR_SYSTEM_PROMPT,
         )
+
+        # Fallback to OpenAI if NVIDIA returned empty
+        if not raw_response:
+            logger.warning("NVIDIA returned empty — falling back to OpenAI")
+            provider = "openai"
+            raw_response = await openai_service.vision(
+                image_base64=image_b64,
+                prompt="Extract all patient entries from this clinic register photo.",
+                system=OCR_SYSTEM_PROMPT,
+            )
 
         if not raw_response:
             return {
                 "rows": [],
                 "total_rows": 0,
                 "skipped": 0,
-                "errors": ["OpenAI returned empty response — check API key"],
+                "errors": ["Both NVIDIA and OpenAI returned empty — check API keys"],
                 "raw_response": "",
+                "provider": "none",
             }
 
         # Parse JSON response
         try:
-            # Clean response — sometimes GPT wraps in ```json...```
+            # Clean response — sometimes model wraps in ```json...```
             cleaned = raw_response.strip()
             if cleaned.startswith("```"):
                 cleaned = cleaned.split("\n", 1)[1]  # Remove first line
@@ -95,6 +113,7 @@ class OcrAgent:
                 "skipped": 0,
                 "errors": [f"Could not parse AI response as JSON: {e}"],
                 "raw_response": raw_response,
+                "provider": provider,
             }
 
         if not isinstance(raw_rows, list):
@@ -104,6 +123,7 @@ class OcrAgent:
                 "skipped": 0,
                 "errors": ["AI response is not a list"],
                 "raw_response": raw_response,
+                "provider": provider,
             }
 
         # Normalize each row
@@ -137,8 +157,8 @@ class OcrAgent:
             })
 
         logger.info(
-            "OCR extraction: %d rows extracted, %d skipped, %d errors",
-            len(extracted), skipped, len(errors),
+            "OCR extraction (%s): %d rows extracted, %d skipped, %d errors",
+            provider, len(extracted), skipped, len(errors),
         )
 
         return {
@@ -147,4 +167,5 @@ class OcrAgent:
             "skipped": skipped,
             "errors": errors,
             "raw_response": raw_response,
+            "provider": provider,
         }
