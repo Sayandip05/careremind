@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import list, Optional
+from typing import List, Optional
 
 from app.core.database import get_db
 from app.core.security import get_current_tenant
