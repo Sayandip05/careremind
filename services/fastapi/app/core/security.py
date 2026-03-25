@@ -110,7 +110,7 @@ async def get_current_tenant(
     Usage: tenant: Tenant = Depends(get_current_tenant)
     """
     # Import here to avoid circular imports at module level
-    from app.models.tenant import Tenant
+    from app.features.auth.models import Tenant
 
     payload = verify_access_token(credentials.credentials)
     tenant_id = payload["sub"]

@@ -2,13 +2,14 @@
 # Import all models here so Alembic and other modules can do:
 #   from app.models import Tenant, Patient, ...
 
-from app.models.tenant import Tenant, PlanType
-from app.models.patient import Patient, PreferredChannel
-from app.models.appointment import Appointment, UploadSource
-from app.models.reminder import Reminder, ReminderStatus, ChannelType
-from app.models.upload_log import UploadLog, UploadStatus
-from app.models.audit_log import AuditLog
-from app.models.payment import Payment
+from app.features.auth.models import Tenant, PlanType
+from app.features.patients.models import Patient, PreferredChannel
+from app.features.appointments.models import Appointment, UploadSource
+from app.features.reminders.models import Reminder, ReminderStatus, ChannelType
+from app.features.upload.models import UploadLog, UploadStatus
+from app.features.audit.models import AuditLog
+from app.features.billing.models import Payment
+from app.features.staff.models import Staff
 
 __all__ = [
     "Tenant",
@@ -24,4 +25,5 @@ __all__ = [
     "UploadStatus",
     "AuditLog",
     "Payment",
+    "Staff",
 ]
