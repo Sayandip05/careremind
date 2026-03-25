@@ -23,8 +23,15 @@ passlib[bcrypt]==1.7.4
 celery==5.3.4
 redis==5.0.1
 
+# ── Monitoring ───────────────────────────────────────────────
+sentry-sdk==1.40.0
+
 # ── HTTP Client ──────────────────────────────────────────────
 httpx==0.26.0
 
 # ── File Processing ──────────────────────────────────────────
 openpyxl==3.1.2
+
+# ── AI Agent Framework ───────────────────────────────────────
+langgraph>=0.2.0
+langchain-core>=0.3.0
