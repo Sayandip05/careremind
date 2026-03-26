@@ -9,8 +9,8 @@ import json
 import logging
 from typing import Any
 
-from app.services.nvidia_service import nvidia_service
-from app.services.openai_service import openai_service
+from app.core.integrations.nvidia_service import nvidia_service
+from app.core.integrations.openai_service import openai_service
 from app.utils.date_parser import parse_date
 from app.utils.phone_formatter import normalize_phone
 

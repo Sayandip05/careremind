@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import encryption_service
-from app.models.patient import Patient
+from app.features.patients.models import Patient
 
 logger = logging.getLogger("careremind.agents.dedup")
 

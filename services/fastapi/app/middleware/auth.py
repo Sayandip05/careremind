@@ -8,13 +8,14 @@ This middleware only handles request-level concerns like logging.
 
 import logging
 import time
+from typing import Callable
 
 from fastapi import Request
+from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger("careremind.auth")
 
-# Routes that do not require authentication
 PUBLIC_PATHS = {
     "/health",
     "/docs",
@@ -25,26 +26,45 @@ PUBLIC_PATHS = {
     "/api/v1/webhooks/whatsapp",
 }
 
+PUBLIC_PATH_PREFIXES = {
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+}
+
+
+def is_public_path(path: str) -> bool:
+    """Check if the path is public (no auth required)."""
+    if path in PUBLIC_PATHS:
+        return True
+    for prefix in PUBLIC_PATH_PREFIXES:
+        if path.startswith(prefix):
+            return True
+    return False
+
 
 class AuthMiddleware(BaseHTTPMiddleware):
     """
     Lightweight middleware for:
     - Request timing / logging
-    - Skipping auth on public paths (actual auth is per-route via Depends)
+    - Skip metrics for public paths
     """
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        path = request.url.path
+        is_public = is_public_path(path)
+
         start = time.perf_counter()
-
         response = await call_next(request)
-
         duration_ms = (time.perf_counter() - start) * 1000
-        logger.debug(
-            "%s %s — %d (%.1fms)",
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
-        )
+
+        if not is_public:
+            logger.debug(
+                "%s %s — %d (%.1fms)",
+                request.method,
+                path,
+                response.status_code,
+                duration_ms,
+            )
 
         return response

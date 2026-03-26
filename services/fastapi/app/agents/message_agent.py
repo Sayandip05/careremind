@@ -7,10 +7,10 @@ import logging
 from datetime import date
 
 from app.languages.detector import get_language
-from app.models.appointment import Appointment
-from app.models.patient import Patient
-from app.models.tenant import Tenant
-from app.services.openai_service import openai_service
+from app.features.appointments.models import Appointment
+from app.features.patients.models import Patient
+from app.features.auth.models import Tenant
+from app.core.integrations.openai_service import openai_service
 from app.specialty import get_specialty
 
 logger = logging.getLogger("careremind.agents.message")
