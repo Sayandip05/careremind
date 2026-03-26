@@ -35,7 +35,7 @@ def cleanup_expired_reminders():
 async def _cleanup_uploads():
     """Remove upload_logs older than 30 days."""
     from app.core.database import async_session
-    from app.models.upload_log import UploadLog
+    from app.features.upload.models import UploadLog
     from sqlalchemy import delete
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=30)
@@ -54,7 +54,7 @@ async def _cleanup_uploads():
 async def _cleanup_reminders():
     """Delete completed/failed reminders older than 90 days."""
     from app.core.database import async_session
-    from app.models.reminder import Reminder, ReminderStatus
+    from app.features.reminders.models import Reminder, ReminderStatus
     from sqlalchemy import delete
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=90)

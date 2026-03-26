@@ -35,7 +35,7 @@ def generate_daily_summary(self, tenant_id: str = None):
 async def _generate_for_all():
     """Generate summaries for all active tenants."""
     from app.core.database import async_session
-    from app.models.tenant import Tenant
+    from app.features.auth.models import Tenant
     from sqlalchemy import select
 
     async with async_session() as db:
@@ -53,9 +53,9 @@ async def _generate_for_all():
 async def _generate_for_tenant(tenant_id: str):
     """Build and send daily summary for one tenant."""
     from app.core.database import async_session
-    from app.models.reminder import Reminder, ReminderStatus
-    from app.models.tenant import Tenant
-    from app.services.whatsapp_service import whatsapp_service
+    from app.features.reminders.models import Reminder, ReminderStatus
+    from app.features.auth.models import Tenant
+    from app.core.integrations.whatsapp_service import whatsapp_service
     from sqlalchemy import func, select, and_
     from datetime import datetime, timedelta, timezone
 

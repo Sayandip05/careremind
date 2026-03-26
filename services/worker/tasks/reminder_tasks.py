@@ -49,8 +49,8 @@ def retry_failed_reminders(self):
 async def _send_pending():
     """Fetch and send all due reminders."""
     from app.core.database import async_session
-    from app.models.reminder import Reminder, ReminderStatus
-    from app.services.notification_service import notification_service
+    from app.features.reminders.models import Reminder, ReminderStatus
+    from app.features.reminders.service import notification_service
 
     async with async_session() as db:
         now = datetime.now(timezone.utc)
@@ -85,8 +85,8 @@ async def _send_pending():
 async def _send_single(reminder_id: str):
     """Send one specific reminder."""
     from app.core.database import async_session
-    from app.models.reminder import Reminder
-    from app.services.notification_service import notification_service
+    from app.features.reminders.models import Reminder
+    from app.features.reminders.service import notification_service
 
     async with async_session() as db:
         reminder = await db.get(Reminder, reminder_id)
@@ -102,8 +102,8 @@ async def _send_single(reminder_id: str):
 async def _retry_failed():
     """Retry failed reminders (only those with retry_count < 2)."""
     from app.core.database import async_session
-    from app.models.reminder import Reminder, ReminderStatus
-    from app.services.notification_service import notification_service
+    from app.features.reminders.models import Reminder, ReminderStatus
+    from app.features.reminders.service import notification_service
 
     async with async_session() as db:
         result = await db.execute(

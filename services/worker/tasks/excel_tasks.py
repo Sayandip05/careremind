@@ -32,7 +32,7 @@ async def _process_excel(upload_id: str, tenant_id: str):
     """Load file from upload_log, run orchestrator pipeline."""
     from app.agents.orchestrator import Orchestrator
     from app.core.database import async_session
-    from app.models.upload_log import UploadLog, UploadStatus
+    from app.features.upload.models import UploadLog, UploadStatus
 
     async with async_session() as db:
         upload_log = await db.get(UploadLog, upload_id)
