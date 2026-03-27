@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import get_current_tenant
 from app.features.auth.models import Tenant
-from app.features.auth.schemas import TenantResponse, TenantUpdate, TenantRegister, TenantLogin, TokenResponse
+from app.features.auth.schemas import TenantResponse, TenantUpdate, TenantRegister, TokenResponse
 from app.features.auth import service as auth_service
 
 router = APIRouter()
@@ -27,16 +27,19 @@ async def register(
     return tenant
 
 
+from fastapi.security import OAuth2PasswordRequestForm
+from typing import Annotated
+
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    data: TenantLogin,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncSession = Depends(get_db),
 ):
     """
     Authenticate a doctor and return a JWT.
     Consolidates functionality.
     """
-    return await auth_service.authenticate_tenant(data, db)
+    return await auth_service.authenticate_tenant(form_data.username, form_data.password, db)
 
 
 
