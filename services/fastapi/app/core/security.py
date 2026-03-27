@@ -4,27 +4,28 @@ from uuid import UUID
 
 from cryptography.fernet import Fernet
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from fastapi.security import OAuth2PasswordBearer
+import jwt
+from jwt.exceptions import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_hash = PasswordHash.recommended()
 
 # ── Passwords ────────────────────────────────────────────────
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against its hashed version."""
-    return pwd_context.verify(plain_password, hashed_password)
+    return password_hash.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Generate a bcrypt hash of a plain password."""
-    return pwd_context.hash(password)
+    """Generate a hash of a plain password."""
+    return password_hash.hash(password)
 
 
 # ── JWT Tokens ───────────────────────────────────────────────
@@ -60,7 +61,7 @@ def verify_access_token(token: str) -> dict:
                 detail="Invalid token: missing subject",
             )
         return payload
-    except JWTError as e:
+    except InvalidTokenError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid or expired token: {e}",
@@ -93,16 +94,16 @@ encryption_service = EncryptionService()
 
 
 # ── Auth Dependency ──────────────────────────────────────────
-bearer_scheme = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 
 async def get_current_tenant(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> "Tenant":
     """
     FastAPI dependency that:
-    1. Extracts the Bearer token from the Authorization header
+    1. Extracts the Bearer token from the Authorization header via OAuth2 scheme
     2. Validates the JWT
     3. Loads the Tenant from the database
     4. Returns the Tenant object
@@ -112,7 +113,7 @@ async def get_current_tenant(
     # Import here to avoid circular imports at module level
     from app.features.auth.models import Tenant
 
-    payload = verify_access_token(credentials.credentials)
+    payload = verify_access_token(token)
     tenant_id = payload["sub"]
 
     result = await db.execute(
