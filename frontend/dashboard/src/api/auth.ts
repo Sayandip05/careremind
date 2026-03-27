@@ -1,8 +1,14 @@
 import client from './client';
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    client.post('/auth/login', { email, password }),
+  login: (email: string, password: string) => {
+    const params = new URLSearchParams();
+    params.append('username', email);
+    params.append('password', password);
+    return client.post('/auth/login', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+  },
 
   register: (data: {
     doctor_name: string;
