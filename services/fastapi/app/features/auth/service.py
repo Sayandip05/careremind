@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
 from app.features.auth.models import Tenant
-from app.features.auth.schemas import TenantRegister, TenantLogin, TenantUpdate, TokenResponse
+from app.features.auth.schemas import TenantRegister, TenantUpdate, TokenResponse
 from app.core.security import get_password_hash, verify_password, create_access_token
 
 
@@ -45,15 +45,15 @@ async def register_tenant(data: TenantRegister, db: AsyncSession) -> Tenant:
     return tenant
 
 
-async def authenticate_tenant(data: TenantLogin, db: AsyncSession) -> TokenResponse:
+async def authenticate_tenant(username: str, password: str, db: AsyncSession) -> TokenResponse:
     """
     Authenticate a doctor and return a JWT token.
     """
-    stmt = select(Tenant).where(Tenant.email == data.email, Tenant.is_active.is_(True))
+    stmt = select(Tenant).where(Tenant.email == username, Tenant.is_active.is_(True))
     result = await db.execute(stmt)
     tenant = result.scalar_one_or_none()
 
-    if not tenant or not verify_password(data.password, tenant.hashed_password):
+    if not tenant or not verify_password(password, tenant.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
