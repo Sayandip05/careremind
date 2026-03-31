@@ -18,27 +18,37 @@ META_API_VERSION = "v21.0"
 class WhatsAppService:
     """Sends messages via Meta WhatsApp Cloud API."""
 
-    def __init__(self):
-        self.token = settings.META_WHATSAPP_TOKEN
-        self.phone_number_id = settings.META_PHONE_NUMBER_ID
+    @property
+    def token(self) -> str:
+        """Dynamically fetch the token at runtime to prevent freezing on initialization."""
+        from app.core.config import settings
+        return settings.META_WHATSAPP_TOKEN
+
+    @property
+    def _default_phone_number_id(self) -> str:
+        from app.core.config import settings
+        return settings.META_PHONE_NUMBER_ID
 
     @property
     def is_configured(self) -> bool:
-        return bool(self.token and self.phone_number_id)
+        return bool(self.token and self._default_phone_number_id)
 
-    async def send_message(self, to: str, message: str) -> dict:
+    async def send_message(self, to: str, message: str, phone_number_id: Optional[str] = None) -> dict:
         """
         Send a WhatsApp text message via Meta Cloud API.
         Args:
             to: Phone number in international format (e.g., +919876543210)
             message: Message text
+            phone_number_id: Optional overlay to reply using a specific WhatsApp business number
         Returns:
             {"success": True/False, "message_id": "...", "error": "..."}
         """
-        if not self.is_configured:
+        sender_id = phone_number_id or self._default_phone_number_id
+        
+        if not self.token or not sender_id:
             return {"success": False, "error": "WhatsApp credentials not configured"}
 
-        url = f"https://graph.facebook.com/{META_API_VERSION}/{self.phone_number_id}/messages"
+        url = f"https://graph.facebook.com/{META_API_VERSION}/{sender_id}/messages"
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",

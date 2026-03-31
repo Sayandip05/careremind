@@ -12,6 +12,52 @@ from app.features.auth.schemas import TenantRegister, TenantUpdate, TokenRespons
 from app.core.security import get_password_hash, verify_password, create_access_token
 
 
+from fastapi_sso.sso.base import OpenID
+
+async def authenticate_sso(openid: OpenID, db: AsyncSession) -> TokenResponse:
+    """
+    Authenticate a doctor via OAuth2 (Google/Facebook).
+    Auto-registers them if they don't exist.
+    """
+    stmt = select(Tenant).where(Tenant.email == openid.email)
+    result = await db.execute(stmt)
+    tenant = result.scalar_one_or_none()
+
+    if not tenant:
+        # Generate random password for SSO users to satisfy DB constraints
+        random_pwd = get_password_hash(str(uuid.uuid4()))
+        
+        tenant = Tenant(
+            id=str(uuid.uuid4()),
+            doctor_name=openid.display_name or openid.given_name or "Doctor",
+            clinic_name="My Clinic", # Placeholder until user updates profile
+            email=openid.email,
+            phone=None,
+            specialty="general",
+            language_preference="english",
+            whatsapp_number=None,
+            hashed_password=random_pwd,
+            is_active=True,
+        )
+        db.add(tenant)
+        await db.flush()
+
+    if not tenant.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account deactivated",
+        )
+
+    # Generate token
+    token = create_access_token(tenant_id=tenant.id, email=tenant.email)
+    
+    return TokenResponse(
+        access_token=token,
+        tenant_id=tenant.id,
+        doctor_name=tenant.doctor_name,
+    )
+
+
 async def register_tenant(data: TenantRegister, db: AsyncSession) -> Tenant:
     """
     Register a new doctor account.

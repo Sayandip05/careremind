@@ -59,7 +59,9 @@ class MessageAgent:
                     prompt=(
                         f"Rewrite this clinic reminder message to sound more natural and warm "
                         f"in {language.get_language_name()}. Keep it short (under 160 chars for SMS). "
-                        f"Keep all the factual information unchanged. Tone: {specialty.get_tone()}.\n\n"
+                        f"Keep all the factual information unchanged. "
+                        f"The doctor is a {specialty.get_specialty_name()}. "
+                        f"Tone: {specialty.get_tone()}.\n\n"
                         f"Original:\n{message}"
                     ),
                     system="You are a medical clinic assistant writing patient reminders.",
