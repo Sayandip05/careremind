@@ -11,8 +11,12 @@ export default function Login() {
   const [doctorName, setDoctorName] = useState('');
   const [clinicName, setClinicName] = useState('');
   const [specialty, setSpecialty] = useState('');
+  const [customSpecialty, setCustomSpecialty] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // The actual specialty value sent to the backend
+  const effectiveSpecialty = specialty === 'other' ? customSpecialty.trim() : specialty;
 
   const { login } = useAuthStore();
   const navigate = useNavigate();
@@ -28,7 +32,7 @@ export default function Login() {
           clinic_name: clinicName,
           email,
           password,
-          specialty: specialty || undefined,
+          specialty: effectiveSpecialty || undefined,
         });
       }
       const res = await authApi.login(email, password);
@@ -104,15 +108,32 @@ export default function Login() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Specialty</label>
-                  <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} className={inputClass}>
+                  <select
+                    value={specialty}
+                    onChange={(e) => { setSpecialty(e.target.value); setCustomSpecialty(''); }}
+                    className={inputClass}
+                  >
                     <option value="">Select specialty</option>
-                    <option value="general">General</option>
+                    <option value="general">General Medicine</option>
                     <option value="dental">Dental</option>
-                    <option value="eye">Eye</option>
+                    <option value="eye">Eye / Ophthalmology</option>
                     <option value="orthopedic">Orthopedic</option>
-                    <option value="pediatric">Pediatric</option>
-                    <option value="skin">Skin</option>
+                    <option value="pediatric">Pediatric / Child</option>
+                    <option value="skin">Skin / Dermatology</option>
+                    <option value="diagnosis">Diagnosis / Lab</option>
+                    <option value="other">Other (type below)</option>
                   </select>
+                  {specialty === 'other' && (
+                    <input
+                      type="text"
+                      value={customSpecialty}
+                      onChange={(e) => setCustomSpecialty(e.target.value)}
+                      required
+                      className={`mt-2 ${inputClass}`}
+                      placeholder="e.g. Psychiatrist, Pulmonologist, Cardiologist..."
+                      autoFocus
+                    />
+                  )}
                 </div>
               </>
             )}

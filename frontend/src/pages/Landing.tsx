@@ -1,11 +1,11 @@
 import { ChevronDown, Clock, Leaf, Plus, Shapes, BellRing, Calendar, TrendingDown, Menu, ArrowRight, Check, Loader2, LayoutDashboard, Users, MessageSquare, Upload, Settings, BarChart3 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Hero45 } from './components/blocks/shadcnblocks-com-hero45';
-import { PricingSectionDemo } from './components/blocks/pricing-section-demo';
-import { FooterDemo } from './components/blocks/footer-demo';
-import { QnASection } from './components/blocks/qna-section';
+import { Hero45 } from '@/components/blocks/shadcnblocks-com-hero45';
+import { PricingSectionDemo } from '@/components/blocks/pricing-section-demo';
+import { FooterDemo } from '@/components/blocks/footer-demo';
+import { QnASection } from '@/components/blocks/qna-section';
 
-export default function App() {
+export default function Landing() {
   return (
     <div className="bg-gradient-to-b from-[#e6ffe6] to-[#f0fff0] text-slate-900 font-display min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300">
       {/* Abstract Background Shapes */}
@@ -30,7 +30,7 @@ export default function App() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <a className="hidden md:inline-flex items-center justify-center px-6 py-2.5 bg-primary text-white font-medium rounded hover:bg-green-700 transition-colors" href="http://localhost:3000/login">
+          <a className="hidden md:inline-flex items-center justify-center px-6 py-2.5 bg-primary text-white font-medium rounded hover:bg-green-700 transition-colors" href="/login">
             Start Free Trial
           </a>
           <button className="md:hidden p-2 text-slate-600 hover:text-slate-900">
@@ -49,10 +49,10 @@ export default function App() {
             Just send a WhatsApp photo of your daily register. Our AI handles everything.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a className="w-full sm:w-auto px-8 py-3.5 bg-black text-white font-semibold rounded-full hover:bg-slate-800 transition-colors" href="http://localhost:3000/login">
+            <a className="w-full sm:w-auto px-8 py-3.5 bg-black text-white font-semibold rounded-full hover:bg-slate-800 transition-colors" href="/login">
               Get 14 Days Free Trial
             </a>
-            <a className="w-full sm:w-auto px-8 py-3.5 bg-white text-black border border-slate-200 font-semibold rounded-full hover:bg-slate-50 transition-colors shadow-sm" href="http://localhost:3000/login">
+            <a className="w-full sm:w-auto px-8 py-3.5 bg-white text-black border border-slate-200 font-semibold rounded-full hover:bg-slate-50 transition-colors shadow-sm" href="/login">
               Book A Demo
             </a>
           </div>
@@ -111,8 +111,8 @@ export default function App() {
             </div>
           </div>
 
-            {/* Right Card - WhatsApp Action */}
-            <div className="absolute right-4 bottom-0 w-[400px] h-[440px] flex flex-col bg-[#09090B] text-white rounded-[32px] p-8 shadow-2xl transform rotate-[8deg] hover:rotate-4 transition-transform duration-300 z-30 border border-white/5 overflow-hidden">
+          {/* Right Card - WhatsApp Action */}
+          <div className="absolute right-4 bottom-0 w-[400px] h-[440px] flex flex-col bg-[#09090B] text-white rounded-[32px] p-8 shadow-2xl transform rotate-[8deg] hover:rotate-4 transition-transform duration-300 z-30 border border-white/5 overflow-hidden">
               {/* Abstract background curves */}
             <div className="absolute inset-0 opacity-40 pointer-events-none overflow-hidden rounded-[32px]">
               <svg className="absolute w-[200%] h-[200%] -top-[20%] -left-[50%] stroke-white/10 fill-none stroke-[6]" viewBox="0 0 200 200">

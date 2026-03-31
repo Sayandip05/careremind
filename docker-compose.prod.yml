@@ -1,9 +1,16 @@
 version: '3.8'
 
 services:
-  nginx:
-    image: nginx:latest
-    restart: always
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
 
   fastapi:
     image: careremind/fastapi:latest
@@ -20,7 +27,7 @@ services:
       replicas: 2
 
   scheduler:
-    image:_careremind/scheduler:latest
+    image: careremind/scheduler:latest
     restart: always
 
   whatsapp:
@@ -34,3 +41,7 @@ services:
   landing:
     image: careremind/landing:latest
     restart: always
+
+volumes:
+  caddy_data:
+  caddy_config:

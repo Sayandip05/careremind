@@ -6,6 +6,7 @@ import Upload from '@/pages/Upload';
 import Patients from '@/pages/Patients';
 import Reminders from '@/pages/Reminders';
 import Admin from '@/pages/Admin';
+import Landing from '@/pages/Landing';
 import { useAuthStore } from '@/store/authStore';
 
 export default function App() {
@@ -14,6 +15,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/home" element={!isAuthenticated ? <Landing /> : <Navigate to="/" replace />} />
+        
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
 
         <Route element={<Layout />}>

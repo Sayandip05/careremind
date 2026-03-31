@@ -1,0 +1,26 @@
+# CareRemind Production Reverse Proxy
+# Caddy automatically provisions and renews SSL (Let's Encrypt) for these domains.
+# 
+# IMPORTANT: Replace these generic domains with your actual production domains (e.g. api.careremind.in)
+
+api.yourdomain.com {
+    # ── Security Headers (Backup to FastAPI's own middlewares)
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+    }
+
+    # ── Proxy to internal FastAPI container
+    reverse_proxy fastapi:8000
+}
+
+app.yourdomain.com {
+    # ── Proxy to internal React Dashboard
+    reverse_proxy dashboard:80
+}
+
+# (Optional) Landing Page domain
+yourdomain.com {
+    reverse_proxy landing:80
+}
