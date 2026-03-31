@@ -25,6 +25,9 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.middleware.auth import AuthMiddleware
 from app.middleware.tenant_context import TenantContextMiddleware
+from app.middleware.rate_limiter import RateLimiterMiddleware
+from app.middleware.audit_logger import AuditLogger
+from app.middleware.input_sanitizer import SecurityHeadersMiddleware
 
 # ── Sentry Initialization ────────────────────────────────────
 if settings.SENTRY_DSN:
@@ -66,7 +69,15 @@ app = FastAPI(
     redoc_url="/redoc" if not settings.is_production else None,
 )
 
-# ── CORS Middleware ──────────────────────────────────────────
+# ── Middlewares ──────────────────────────────────────────────
+# Applied in reverse order of evaluation
+
+app.add_middleware(AuthMiddleware)
+app.add_middleware(TenantContextMiddleware)
+app.add_middleware(RateLimiterMiddleware)  # 3. Rate Limit IPs
+app.add_middleware(SecurityHeadersMiddleware) # 2. Append Security Headers
+app.add_middleware(AuditLogger) # 1. Log HTTP requests
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -74,12 +85,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ── Tenant Context Middleware ────────────────────────────────
-app.add_middleware(TenantContextMiddleware)
-
-# ── Auth Middleware ───────────────────────────────────────────
-app.add_middleware(AuthMiddleware)
 
 # ── API Router ───────────────────────────────────────────────
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])

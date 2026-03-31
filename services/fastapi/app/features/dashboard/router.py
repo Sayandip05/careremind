@@ -20,6 +20,9 @@ logger = logging.getLogger("careremind.dashboard")
 router = APIRouter()
 
 
+from app.core.cache import cache
+import json
+
 @router.get("/stats")
 async def get_dashboard_stats(
     tenant: Tenant = Depends(get_current_tenant),
@@ -28,10 +31,21 @@ async def get_dashboard_stats(
     """
     Dashboard statistics — single round-trip to the database.
     Returns patient count, reminder counts by status, and upload count.
+    Cached in Redis for 5 minutes.
     """
     try:
         tenant_id = str(tenant.id)
+        cache_key = f"dashboard_stats:{tenant_id}"
+        
+        # 1. Attempt Cache Retrieval
+        try:
+            cached_data = await cache.get(cache_key)
+            if cached_data:
+                return json.loads(cached_data)
+        except Exception as e:
+            logger.warning("Redis cache get bypassed [%s]: %s", cache_key, e)
 
+        # 2. Database Fetch
         result = await db.execute(
             select(
                 func.count(func.distinct(Patient.id))
@@ -70,7 +84,7 @@ async def get_dashboard_stats(
         total_failed = row.failed_reminders or 0
         total_attempted = total_sent + total_failed
 
-        return {
+        stats = {
             "total_patients": row.total_patients or 0,
             "pending_reminders": row.pending_reminders or 0,
             "sent_reminders": total_sent,
@@ -80,6 +94,14 @@ async def get_dashboard_stats(
             else 0,
             "total_uploads": row.total_uploads or 0,
         }
+
+        # 3. Store in Cache (5 minutes)
+        try:
+            await cache.set(cache_key, json.dumps(stats), ex=300)
+        except Exception as e:
+            logger.warning("Redis cache set bypassed [%s]: %s", cache_key, e)
+
+        return stats
     except Exception as e:
         logger.error("Failed to fetch dashboard stats: %s", e)
         raise HTTPException(status_code=500, detail="Failed to fetch dashboard stats")

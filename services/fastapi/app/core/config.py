@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "change-me-in-production-minimum-32-chars"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 24
+    
+    # ── Social OAuth Logins ──────────────────────────────────
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    FACEBOOK_CLIENT_ID: str = ""
+    FACEBOOK_CLIENT_SECRET: str = ""
 
     # ── Patient Data Encryption ──────────────────────────────
     FIELD_ENCRYPTION_KEY: str = ""
@@ -57,6 +63,7 @@ class Settings(BaseSettings):
     # ── Payments (V4) ────────────────────────────────────────
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_SECRET: str = ""
+    RAZORPAY_WEBHOOK_SECRET: str = ""
 
     # ── CORS ─────────────────────────────────────────────────
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3002"

@@ -17,6 +17,8 @@ email-validator==2.1.0
 PyJWT==2.8.0
 pwdlib[argon2]==0.3.0
 cryptography==41.0.7
+fastapi-sso>=0.15.0
+slowapi>=0.1.9
 
 # ── Background Jobs ─────────────────────────────────────────
 celery==5.3.4
@@ -30,6 +32,9 @@ httpx==0.26.0
 
 # ── File Processing ──────────────────────────────────────────
 openpyxl==3.1.2
+
+# ── Email Infrastructure ─────────────────────────────────────
+aiosmtplib>=3.0.1
 
 # ── AI Agent Framework ───────────────────────────────────────
 langgraph>=0.2.0

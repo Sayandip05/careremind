@@ -29,8 +29,12 @@ class StorageService:
 
         if settings.SUPABASE_URL and settings.SUPABASE_KEY:
             return await self._save_supabase(unique_name, data)
-        else:
-            return self._save_local(unique_name, data)
+            
+        if settings.is_production:
+            logger.critical("FATAL: Supabase keys missing in production. Refusing stateless local upload.")
+            raise RuntimeError("Storage backend not configured for production. Refusing data loss risk.")
+            
+        return self._save_local(unique_name, data)
 
     async def _save_supabase(self, path: str, data: bytes) -> str:
         """Upload to Supabase Storage bucket."""

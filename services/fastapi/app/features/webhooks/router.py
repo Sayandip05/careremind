@@ -245,27 +245,9 @@ async def _find_tenant_by_whatsapp(phone: str, db: AsyncSession) -> str | None:
 
 
 async def _send_whatsapp_message(to: str, message: str, phone_number_id: str):
-    """Send a WhatsApp text message back to user."""
-    from app.core.config import settings
-    import httpx
-
-    url = f"https://graph.facebook.com/v21.0/{phone_number_id}/messages"
-    headers = {
-        "Authorization": f"Bearer {settings.META_WHATSAPP_TOKEN}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "text",
-        "text": {"body": message},
-    }
-
-    try:
-        async with httpx.AsyncClient() as client:
-            await client.post(url, json=payload, headers=headers)
-    except Exception as e:
-        logger.error("Failed to send WhatsApp message: %s", e)
+    """Send a WhatsApp text message back to user using the unified service."""
+    from app.core.integrations.whatsapp_service import whatsapp_service
+    await whatsapp_service.send_message(to, message, phone_number_id)
 
 
 async def _handle_optout(phone_raw: str, db: AsyncSession):
@@ -309,7 +291,47 @@ async def _handle_optout(phone_raw: str, db: AsyncSession):
     logger.info("Opted out %d patients, cancelled pending reminders", len(patients))
 
 
+import hmac
+import hashlib
+from fastapi import Header
+
 @router.post("/razorpay")
-async def razorpay_webhook(request: Request):
-    """Razorpay payment webhook — Phase V4 (payments)."""
+async def razorpay_webhook(
+    request: Request, 
+    x_razorpay_signature: str = Header(None)
+):
+    """Razorpay payment webhook — securely verified via HMAC."""
+    from app.core.config import settings
+    
+    if not x_razorpay_signature:
+        logger.warning("Razorpay webhook attempt missing signature header.")
+        return JSONResponse(status_code=400, content={"error": "Missing signature"})
+        
+    try:
+        raw_body = await request.body()
+        
+        # In production this comes from secrets. Using RAZORPAY_SECRET as fallback placeholder
+        secret_key = getattr(settings, "RAZORPAY_WEBHOOK_SECRET", settings.RAZORPAY_SECRET)
+        secret = secret_key.encode("utf-8")
+        
+        expected_signature = hmac.new(
+            secret,
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(expected_signature, x_razorpay_signature):
+            logger.critical("Razorpay webhook signature mismtch! Possible spoof attack.")
+            return JSONResponse(status_code=400, content={"error": "Invalid signature"})
+            
+        payload = await request.json()
+        event_type = payload.get("event", "unknown")
+        logger.info(f"Verified pristine Razorpay event received: {event_type}")
+        
+        # TODO: Handle event_type properly against database
+        
+    except Exception as e:
+        logger.error(f"Error processing razorpay webhook: {e}")
+        return JSONResponse(status_code=500, content={"error": "Handler Error"})
+
     return JSONResponse(status_code=200, content={"status": "ok"})
