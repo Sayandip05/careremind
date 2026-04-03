@@ -21,6 +21,7 @@ from app.features.staff.router import router as staff_router
 from app.features.audit.router import router as audit_router
 from app.features.dashboard.router import router as dashboard_router
 from app.features.webhooks.router import router as webhooks_router
+from app.features.clinics.router import router as clinics_router
 from app.core.config import settings
 from app.core.database import get_db
 from app.middleware.auth import AuthMiddleware
@@ -28,6 +29,7 @@ from app.middleware.tenant_context import TenantContextMiddleware
 from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.middleware.audit_logger import AuditLogger
 from app.middleware.input_sanitizer import SecurityHeadersMiddleware
+from app.middleware.error_handler import ErrorHandlerMiddleware
 
 # ── Sentry Initialization ────────────────────────────────────
 if settings.SENTRY_DSN:
@@ -72,6 +74,7 @@ app = FastAPI(
 # ── Middlewares ──────────────────────────────────────────────
 # Applied in reverse order of evaluation
 
+app.add_middleware(ErrorHandlerMiddleware)  # Catch all unhandled exceptions
 app.add_middleware(AuthMiddleware)
 app.add_middleware(TenantContextMiddleware)
 app.add_middleware(RateLimiterMiddleware)  # 3. Rate Limit IPs
@@ -99,6 +102,7 @@ app.include_router(staff_router, prefix="/api/v1/staff", tags=["staff"])
 app.include_router(audit_router, prefix="/api/v1/audit", tags=["audit"])
 app.include_router(dashboard_router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(webhooks_router, prefix="/api/v1/webhooks", tags=["webhooks"])
+app.include_router(clinics_router, prefix="/api/v1/clinics", tags=["clinics"])
 
 
 # ── Health Check ─────────────────────────────────────────────

@@ -95,3 +95,20 @@ async def update_patient(
         db=db,
     )
     return patient
+
+
+@router.delete("/{patient_id}", status_code=204)
+async def delete_patient(
+    patient_id: str,
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Delete a patient and all associated appointments and reminders.
+    IDOR protected — only the owning doctor can delete.
+    """
+    await patient_service.delete_patient(
+        tenant_id=str(tenant.id),
+        patient_id=patient_id,
+        db=db,
+    )

@@ -5,7 +5,7 @@ Logic extracted from ReminderAgent.schedule_reminders().
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -61,7 +61,7 @@ async def create_reminders_node(state: SchedulingState) -> dict:
         scheduled_at = timing.get_scheduled_at(visit_date)
 
         # Skip if in the past
-        if scheduled_at < datetime.now():
+        if scheduled_at < datetime.now(timezone.utc):
             logger.info(
                 "Skipping past reminder: %s for appointment %s",
                 timing.label, appointment.id,
@@ -85,11 +85,13 @@ async def create_reminders_node(state: SchedulingState) -> dict:
         reminder = Reminder(
             id=str(uuid.uuid4()),
             tenant_id=str(tenant.id),
+            patient_id=appointment.patient_id,
             appointment_id=appointment.id,
             reminder_number=reminder_number,
             channel="whatsapp",
             scheduled_at=scheduled_at,
             status=ReminderStatus.PENDING,
+            retry_count=0,
         )
         db.add(reminder)
         created.append(reminder)

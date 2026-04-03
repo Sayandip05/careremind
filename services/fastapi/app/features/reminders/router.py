@@ -68,3 +68,54 @@ async def list_reminders(
     except Exception as e:
         logger.error("Failed to fetch reminders: %s", e)
         raise HTTPException(status_code=500, detail="Failed to fetch reminders")
+
+
+@router.post("/{reminder_id}/retry")
+async def retry_reminder(
+    reminder_id: str,
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Manually retry a failed reminder.
+    Resets status to PENDING so the scheduler will retry sending.
+    IDOR protected — only the owning doctor can retry.
+    """
+    from datetime import datetime, timezone
+    
+    tenant_id = str(tenant.id)
+    
+    # Fetch the reminder with IDOR check
+    result = await db.execute(
+        select(Reminder).where(
+            Reminder.id == reminder_id,
+            Reminder.tenant_id == tenant_id,
+        )
+    )
+    reminder = result.scalar_one_or_none()
+    
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    
+    # Only allow retrying failed reminders
+    if reminder.status != ReminderStatus.FAILED:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot retry reminder with status '{reminder.status.value}'. Only 'failed' reminders can be retried."
+        )
+    
+    # Reset to pending
+    reminder.status = ReminderStatus.PENDING
+    reminder.error_log = None
+    reminder.sent_at = None
+    reminder.retry_count = 0
+    
+    await db.flush()
+    
+    logger.info("Reminder %s manually retried by tenant %s", reminder_id, tenant_id)
+    
+    return {
+        "message": "Reminder queued for retry",
+        "reminder_id": reminder_id,
+        "status": ReminderStatus.PENDING.value,
+    }

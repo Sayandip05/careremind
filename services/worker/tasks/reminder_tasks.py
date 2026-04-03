@@ -72,9 +72,11 @@ async def _send_pending():
                     sent += 1
                 else:
                     failed += 1
+                    reminder.retry_count += 1
             except Exception as e:
                 logger.error("Error sending reminder %s: %s", reminder.id, e)
                 failed += 1
+                reminder.retry_count += 1
 
         await db.commit()
 
@@ -109,12 +111,15 @@ async def _retry_failed():
         result = await db.execute(
             select(Reminder).where(
                 Reminder.status == ReminderStatus.FAILED,
+                Reminder.retry_count < 2,  # Only retry if under limit
             ).limit(200)
         )
         reminders = result.scalars().all()
 
         retried = 0
         for reminder in reminders:
+            # Increment retry count
+            reminder.retry_count += 1
             # Reset to pending and re-send
             reminder.status = ReminderStatus.PENDING
             reminder.error_log = None

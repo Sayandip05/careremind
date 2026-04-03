@@ -178,6 +178,7 @@ async def try_sms_node(state: NotificationState) -> dict:
     # Both channels failed
     reminder.status = ReminderStatus.FAILED
     reminder.error_log = "Both WhatsApp and SMS failed"
+    reminder.retry_count += 1
     await db.flush()
     return {
         "status": "failed",

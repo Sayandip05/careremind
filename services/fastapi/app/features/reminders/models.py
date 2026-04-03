@@ -26,7 +26,8 @@ class Reminder(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    appointment_id = Column(String, ForeignKey("appointments.id", ondelete="CASCADE"), nullable=False)
+    patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True)
+    appointment_id = Column(String, ForeignKey("appointments.id", ondelete="CASCADE"), nullable=False, index=True)
     reminder_number = Column(Integer, nullable=False, default=1)
     status = Column(Enum(ReminderStatus), nullable=False, default=ReminderStatus.PENDING)
     message_text = Column(Text)
@@ -35,8 +36,11 @@ class Reminder(Base):
     scheduled_at = Column(DateTime(timezone=True), nullable=False)
     sent_at = Column(DateTime(timezone=True))
     error_log = Column(Text)
+    retry_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # Relationships
     tenant = relationship("Tenant", back_populates="reminders")
+    patient = relationship("Patient", back_populates="reminders")
     appointment = relationship("Appointment", back_populates="reminders")
