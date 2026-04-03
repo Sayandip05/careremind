@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     RAZORPAY_SECRET: str = ""
     RAZORPAY_WEBHOOK_SECRET: str = ""
 
+    # ── API Base URL (for OAuth callbacks) ───────────────────
+    API_BASE_URL: str = "http://localhost:8000"
+
     # ── CORS ─────────────────────────────────────────────────
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3002"
 

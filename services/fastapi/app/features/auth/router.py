@@ -24,7 +24,7 @@ async def get_specialties():
     return list_known_specialties()
 
 
-from fastapi import Request
+from fastapi import Request, HTTPException
 from fastapi_sso.sso.google import GoogleSSO
 from fastapi_sso.sso.facebook import FacebookSSO
 from app.core.config import settings
@@ -32,14 +32,14 @@ from app.core.config import settings
 google_sso = GoogleSSO(
     client_id=settings.GOOGLE_CLIENT_ID,
     client_secret=settings.GOOGLE_CLIENT_SECRET,
-    redirect_uri="http://localhost:8000/api/v1/auth/callback/google",
+    redirect_uri=f"{settings.API_BASE_URL}/api/v1/auth/callback/google",
     allow_insecure_http=True,
 )
 
 facebook_sso = FacebookSSO(
     client_id=settings.FACEBOOK_CLIENT_ID,
     client_secret=settings.FACEBOOK_CLIENT_SECRET,
-    redirect_uri="http://localhost:8000/api/v1/auth/callback/facebook",
+    redirect_uri=f"{settings.API_BASE_URL}/api/v1/auth/callback/facebook",
     allow_insecure_http=True,
 )
 
@@ -54,6 +54,13 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     """Handles Google Auth callback and returns JWT"""
     with google_sso:
         openid = await google_sso.verify_and_process(request)
+    
+    if not openid or not openid.email:
+        raise HTTPException(
+            status_code=400,
+            detail="Email not provided by OAuth provider"
+        )
+    
     return await auth_service.authenticate_sso(openid, db)
 
 
@@ -68,6 +75,13 @@ async def facebook_callback(request: Request, db: AsyncSession = Depends(get_db)
     """Handles Facebook Auth callback and returns JWT"""
     with facebook_sso:
         openid = await facebook_sso.verify_and_process(request)
+    
+    if not openid or not openid.email:
+        raise HTTPException(
+            status_code=400,
+            detail="Email not provided by OAuth provider"
+        )
+    
     return await auth_service.authenticate_sso(openid, db)
 
 

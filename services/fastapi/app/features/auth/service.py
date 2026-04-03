@@ -7,9 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
+from app.core.integrations.whatsapp_service import whatsapp_service
 from app.features.auth.models import Tenant
 from app.features.auth.schemas import TenantRegister, TenantUpdate, TokenResponse
 from app.core.security import get_password_hash, verify_password, create_access_token
+from app.utils.phone_formatter import normalize_phone
 
 
 from fastapi_sso.sso.base import OpenID
@@ -62,6 +64,7 @@ async def register_tenant(data: TenantRegister, db: AsyncSession) -> Tenant:
     """
     Register a new doctor account.
     Hashes password and creates a Tenant record.
+    Sends welcome WhatsApp message if whatsapp_number is provided.
     """
     # Check if email already exists
     stmt = select(Tenant).where(Tenant.email == data.email)
@@ -72,6 +75,16 @@ async def register_tenant(data: TenantRegister, db: AsyncSession) -> Tenant:
             detail="Email already registered",
         )
 
+    # Normalize and validate whatsapp number if provided
+    normalized_whatsapp = None
+    if data.whatsapp_number:
+        normalized_whatsapp = normalize_phone(data.whatsapp_number)
+        if not normalized_whatsapp:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid WhatsApp number format. Please provide a valid 10-digit Indian mobile number.",
+            )
+
     # Create new tenant
     tenant = Tenant(
         id=str(uuid.uuid4()),
@@ -81,13 +94,35 @@ async def register_tenant(data: TenantRegister, db: AsyncSession) -> Tenant:
         phone=data.phone,
         specialty=data.specialty,
         language_preference=data.language_preference or "english",
-        whatsapp_number=data.whatsapp_number,
+        whatsapp_number=normalized_whatsapp,
         hashed_password=get_password_hash(data.password),
         is_active=True,
     )
     
     db.add(tenant)
     await db.flush()
+
+    # Send welcome WhatsApp message
+    if normalized_whatsapp:
+        try:
+            welcome_message = (
+                f"Welcome Dr. {data.doctor_name}! 🎉\n\n"
+                f"Your CareRemind account is now active. "
+                f"You can start uploading patient data via the dashboard or by sending "
+                f"images/documents to this WhatsApp number.\n\n"
+                f"Need help? Reply HELP anytime."
+            )
+            await whatsapp_service.send_message(
+                to=normalized_whatsapp,
+                message=welcome_message
+            )
+        except Exception as e:
+            # Log but don't fail registration if WhatsApp fails
+            import logging
+            logging.getLogger("careremind.auth").warning(
+                "Failed to send welcome WhatsApp to %s: %s", normalized_whatsapp, e
+            )
+
     return tenant
 
 

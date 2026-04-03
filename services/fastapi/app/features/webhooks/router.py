@@ -21,6 +21,7 @@ from app.core.security import encryption_service
 from app.core.storage import storage
 from app.features.patients.models import Patient
 from app.features.reminders.models import Reminder, ReminderStatus
+from app.features.upload.models import UploadLog, UploadStatus
 
 logger = logging.getLogger("careremind.api.webhooks")
 
@@ -120,6 +121,8 @@ async def _handle_whatsapp_image(
     message: dict, sender: str, db: AsyncSession, phone_number_id: str
 ):
     """Handle incoming image - download, process with OCR."""
+    import uuid
+    
     try:
         media_id = message.get("image", {}).get("id")
         if not media_id:
@@ -139,7 +142,26 @@ async def _handle_whatsapp_image(
             )
             return
 
+        # Create upload log for tracking
+        upload_log = UploadLog(
+            id=str(uuid.uuid4()),
+            tenant_id=tenant_id,
+            filename=f"whatsapp_image_{media_id}.jpg",
+            storage_url=f"whatsapp://{media_id}",
+            file_type="photo",
+            status=UploadStatus.PROCESSING,
+        )
+        db.add(upload_log)
+        await db.flush()
+
         result = await orchestrator.process("photo", file_bytes, tenant_id, db)
+        
+        # Update upload log
+        upload_log.status = UploadStatus.COMPLETED
+        upload_log.total_rows = result.get("total_rows", 0)
+        upload_log.duplicates_skipped = result.get("duplicates", 0)
+        upload_log.failed_rows = len(result.get("errors", []))
+        
         await db.commit()
 
         response = (
@@ -162,6 +184,8 @@ async def _handle_whatsapp_document(
     message: dict, sender: str, db: AsyncSession, phone_number_id: str
 ):
     """Handle incoming document - download, process with Excel parser."""
+    import uuid
+    
     try:
         doc = message.get("document", {})
         media_id = doc.get("id")
@@ -192,7 +216,26 @@ async def _handle_whatsapp_document(
             )
             return
 
+        # Create upload log for tracking
+        upload_log = UploadLog(
+            id=str(uuid.uuid4()),
+            tenant_id=tenant_id,
+            filename=filename,
+            storage_url=f"whatsapp://{media_id}",
+            file_type="excel",
+            status=UploadStatus.PROCESSING,
+        )
+        db.add(upload_log)
+        await db.flush()
+
         result = await orchestrator.process("excel", file_bytes, tenant_id, db)
+        
+        # Update upload log
+        upload_log.status = UploadStatus.COMPLETED
+        upload_log.total_rows = result.get("total_rows", 0)
+        upload_log.duplicates_skipped = result.get("duplicates", 0)
+        upload_log.failed_rows = len(result.get("errors", []))
+        
         await db.commit()
 
         response = (
@@ -215,10 +258,13 @@ async def _download_media(media_id: str) -> bytes:
     """Download media from Meta WhatsApp API."""
     from app.core.config import settings
 
+    if not settings.META_WHATSAPP_TOKEN:
+        raise ValueError("META_WHATSAPP_TOKEN not configured")
+
     url = f"https://graph.facebook.com/v21.0/{media_id}"
     headers = {"Authorization": f"Bearer {settings.META_WHATSAPP_TOKEN}"}
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(url, headers=headers)
         data = response.json()
 
@@ -239,14 +285,34 @@ async def _find_tenant_by_whatsapp(phone: str, db: AsyncSession) -> str | None:
     if not phone:
         return None
 
+    # Try exact match first
     result = await db.execute(select(Tenant).where(Tenant.whatsapp_number == phone))
     tenant = result.scalar_one_or_none()
-    return str(tenant.id) if tenant else None
+    if tenant:
+        return str(tenant.id)
+    
+    # Try without +91 prefix (in case stored number varies in format)
+    if phone.startswith("+91"):
+        phone_without_prefix = phone[3:]  # Remove +91
+        result = await db.execute(
+            select(Tenant).where(Tenant.whatsapp_number == phone_without_prefix)
+        )
+        tenant = result.scalar_one_or_none()
+        if tenant:
+            return str(tenant.id)
+    
+    return None
 
 
 async def _send_whatsapp_message(to: str, message: str, phone_number_id: str):
     """Send a WhatsApp text message back to user using the unified service."""
     from app.core.integrations.whatsapp_service import whatsapp_service
+    from app.core.config import settings
+    
+    if not settings.META_WHATSAPP_TOKEN:
+        logger.warning("Cannot send WhatsApp reply: META_WHATSAPP_TOKEN not configured")
+        return
+    
     await whatsapp_service.send_message(to, message, phone_number_id)
 
 

@@ -16,6 +16,11 @@ class TenantRegister(BaseModel):
     language_preference: str = Field(default="english")
     whatsapp_number: Optional[str] = None
     password: str = Field(..., min_length=8)
+    # Clinic address (optional)
+    street: Optional[str] = None
+    city: Optional[str] = None
+    pincode: Optional[str] = None
+    state: Optional[str] = None
 
 
 
@@ -44,6 +49,11 @@ class TenantUpdate(BaseModel):
     specialty: Optional[str] = None
     language_preference: Optional[str] = None
     whatsapp_number: Optional[str] = None
+    # Clinic address
+    street: Optional[str] = None
+    city: Optional[str] = None
+    pincode: Optional[str] = None
+    state: Optional[str] = None
 
 
 class TenantResponse(BaseModel):
@@ -59,5 +69,10 @@ class TenantResponse(BaseModel):
     plan: str
     is_active: bool
     created_at: datetime
+    # Clinic address
+    street: Optional[str] = None
+    city: Optional[str] = None
+    pincode: Optional[str] = None
+    state: Optional[str] = None
 
     model_config = {"from_attributes": True}

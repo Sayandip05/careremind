@@ -23,7 +23,13 @@ PUBLIC_PATHS = {
     "/openapi.json",
     "/api/v1/auth/register",
     "/api/v1/auth/login",
+    "/api/v1/auth/specialties",
+    "/api/v1/auth/login/google",
+    "/api/v1/auth/login/facebook",
+    "/api/v1/auth/callback/google",
+    "/api/v1/auth/callback/facebook",
     "/api/v1/webhooks/whatsapp",
+    "/api/v1/webhooks/razorpay",
 }
 
 PUBLIC_PATH_PREFIXES = {

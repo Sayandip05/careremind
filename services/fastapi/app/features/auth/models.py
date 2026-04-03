@@ -32,6 +32,12 @@ class Tenant(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    
+    # Clinic address fields
+    street = Column(String)
+    city = Column(String)
+    pincode = Column(String)
+    state = Column(String)
 
     # Relationships
     patients = relationship("Patient", back_populates="tenant", cascade="all, delete-orphan")
@@ -40,3 +46,4 @@ class Tenant(Base):
     upload_logs = relationship("UploadLog", back_populates="tenant", cascade="all, delete-orphan")
     staff = relationship("Staff", back_populates="tenant", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="tenant", cascade="all, delete-orphan")
+    clinic_locations = relationship("ClinicLocation", back_populates="tenant", cascade="all, delete-orphan")
