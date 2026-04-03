@@ -1,18 +1,6 @@
 version: '3.8'
 
 services:
-  nginx:
-    build: ./infrastructure/nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - fastapi
-      - dashboard
-      - landing
-    volumes:
-      - ./infrastructure/nginx:/etc/nginx
-
   fastapi:
     build: ./services/fastapi
     ports:
@@ -46,20 +34,12 @@ services:
       - ./services/scheduler:/app
 
 
-  dashboard:
-    build: ./frontend/dashboard
+  frontend:
+    build: ./frontend
     ports:
       - "3000:3000"
     volumes:
-      - ./frontend/dashboard:/app
-      - /app/node_modules
-
-  landing:
-    build: ./frontend/landing
-    ports:
-      - "3002:3000"
-    volumes:
-      - ./frontend/landing:/app
+      - ./frontend:/app
       - /app/node_modules
 
   postgres:
@@ -72,14 +52,24 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d careremind"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   prometheus:
-    image: prometheus:latest
+    image: prom/prometheus:latest
     ports:
       - "9090:9090"
     volumes:

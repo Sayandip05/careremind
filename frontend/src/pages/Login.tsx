@@ -12,6 +12,8 @@ export default function Login() {
   const [clinicName, setClinicName] = useState('');
   const [specialty, setSpecialty] = useState('');
   const [customSpecialty, setCustomSpecialty] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [languagePreference, setLanguagePreference] = useState('english');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -33,6 +35,8 @@ export default function Login() {
           email,
           password,
           specialty: effectiveSpecialty || undefined,
+          whatsapp_number: whatsappNumber || undefined,
+          language_preference: languagePreference,
         });
       }
       const res = await authApi.login(email, password);
@@ -134,6 +138,31 @@ export default function Login() {
                       autoFocus
                     />
                   )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">WhatsApp Number</label>
+                  <input 
+                    type="tel" 
+                    value={whatsappNumber} 
+                    onChange={(e) => setWhatsappNumber(e.target.value)} 
+                    className={inputClass} 
+                    placeholder="+91 98765 43210" 
+                  />
+                  <p className="text-xs text-slate-500 mt-1">For receiving notifications and uploading via WhatsApp</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Preferred Language</label>
+                  <select
+                    value={languagePreference}
+                    onChange={(e) => setLanguagePreference(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="english">English</option>
+                    <option value="hindi">Hindi</option>
+                    <option value="tamil">Tamil</option>
+                    <option value="marathi">Marathi</option>
+                    <option value="bengali">Bengali</option>
+                  </select>
                 </div>
               </>
             )}

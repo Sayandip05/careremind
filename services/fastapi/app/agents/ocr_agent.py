@@ -62,6 +62,17 @@ class OcrAgent:
                 "provider": str,
             }
         """
+        # Validate input
+        if not image_bytes or len(image_bytes) < 100:
+            return {
+                "rows": [],
+                "total_rows": 0,
+                "skipped": 0,
+                "errors": ["Invalid or empty image file"],
+                "raw_response": "",
+                "provider": "none",
+            }
+        
         errors: list[str] = []
 
         # Encode image to base64

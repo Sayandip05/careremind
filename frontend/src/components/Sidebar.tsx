@@ -1,12 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { LayoutDashboard, Users, Upload, Bell, LogOut, BellRing, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, Upload, Bell, LogOut, BellRing, Shield, Settings, CreditCard, UsersRound } from 'lucide-react';
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/upload', label: 'Upload', icon: Upload },
   { path: '/patients', label: 'Patients', icon: Users },
   { path: '/reminders', label: 'Reminders', icon: Bell },
+  { path: '/staff', label: 'Staff', icon: UsersRound },
+  { path: '/billing', label: 'Billing', icon: CreditCard },
+  { path: '/settings', label: 'Settings', icon: Settings },
   { path: '/admin', label: 'Admin', icon: Shield },
 ];
 

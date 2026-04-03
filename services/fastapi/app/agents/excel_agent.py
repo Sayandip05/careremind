@@ -35,6 +35,15 @@ class ExcelAgent:
                 "errors": [str, ...],
             }
         """
+        # Validate input
+        if not file_bytes or len(file_bytes) < 100:
+            return {
+                "rows": [],
+                "total_rows": 0,
+                "skipped": 0,
+                "errors": ["Invalid or empty Excel file"],
+            }
+        
         try:
             wb = openpyxl.load_workbook(BytesIO(file_bytes), read_only=True)
         except Exception as e:

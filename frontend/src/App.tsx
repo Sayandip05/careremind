@@ -6,6 +6,9 @@ import Upload from '@/pages/Upload';
 import Patients from '@/pages/Patients';
 import Reminders from '@/pages/Reminders';
 import Admin from '@/pages/Admin';
+import Settings from '@/pages/Settings';
+import Billing from '@/pages/Billing';
+import Staff from '@/pages/Staff';
 import Landing from '@/pages/Landing';
 import { useAuthStore } from '@/store/authStore';
 
@@ -15,16 +18,21 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/home" element={!isAuthenticated ? <Landing /> : <Navigate to="/" replace />} />
+        {/* Landing page at root for unauthenticated users */}
+        <Route path="/" element={!isAuthenticated ? <Landing /> : <Navigate to="/dashboard" replace />} />
         
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
 
+        {/* Protected routes with Layout */}
         <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/upload" element={<Upload />} />
           <Route path="/patients" element={<Patients />} />
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/billing" element={<Billing />} />
+          <Route path="/staff" element={<Staff />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,9 +1,11 @@
 """
 Shared test fixtures for CareRemind API tests.
-Uses SQLite in-memory database for fast, isolated testing.
+Uses PostgreSQL for testing (same as production).
+Set TEST_DATABASE_URL environment variable or use local PostgreSQL.
 """
 
 import asyncio
+import os
 import uuid
 from typing import AsyncGenerator
 
@@ -21,8 +23,12 @@ from app.core.security import create_access_token, get_password_hash
 from app.main import app
 from app.features.auth.models import Tenant
 
-# ── Test Database (SQLite async) ─────────────────────────────
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+# ── Test Database (PostgreSQL) ───────────────────────────────
+# Use environment variable or default to local PostgreSQL
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/careremind_test"
+)
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 TestSessionLocal = async_sessionmaker(
