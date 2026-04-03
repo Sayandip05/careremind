@@ -22,16 +22,17 @@ async def create_patient(
 ) -> Patient:
     """
     Create a new patient with encrypted phone number.
-    Checks for duplicates using the encrypted phone + tenant_id unique index.
+    Checks for duplicates using deterministic phone hash + tenant_id.
     """
-    # Encrypt phone before dedup check
+    # Generate hash and encrypt phone
+    phone_hash = encryption_service.hash_phone(data.phone)
     phone_encrypted = encryption_service.encrypt(data.phone)
 
-    # Dedup check — same phone + same tenant = duplicate
+    # Dedup check — same phone hash + same tenant = duplicate
     existing = await db.execute(
         select(Patient).where(
             Patient.tenant_id == tenant_id,
-            Patient.phone_encrypted == phone_encrypted,
+            Patient.phone_hash == phone_hash,
         )
     )
     if existing.scalar_one_or_none():
@@ -42,6 +43,7 @@ async def create_patient(
         tenant_id=tenant_id,
         name=data.name,
         phone_encrypted=phone_encrypted,
+        phone_hash=phone_hash,
         preferred_channel=PreferredChannel(data.preferred_channel),
         language_preference=data.language_preference,
     )
@@ -121,6 +123,7 @@ async def update_patient(
 
     if data.phone is not None:
         patient.phone_encrypted = encryption_service.encrypt(data.phone)
+        patient.phone_hash = encryption_service.hash_phone(data.phone)
 
     if data.preferred_channel is not None:
         patient.preferred_channel = PreferredChannel(data.preferred_channel)
@@ -130,3 +133,19 @@ async def update_patient(
 
     await db.flush()
     return patient
+
+
+async def delete_patient(
+    tenant_id: str,
+    patient_id: str,
+    db: AsyncSession,
+) -> None:
+    """
+    Delete a patient and all associated appointments and reminders.
+    IDOR protection: verifies patient belongs to the requesting tenant.
+    Cascades delete via SQLAlchemy relationships.
+    """
+    patient = await get_patient(tenant_id, patient_id, db)
+    
+    await db.delete(patient)
+    await db.flush()

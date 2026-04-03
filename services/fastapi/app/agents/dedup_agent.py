@@ -1,6 +1,6 @@
 """
 Dedup Agent — Checks extracted patient rows against existing patients
-in the database using encrypted phone comparison.
+in the database using deterministic phone hash comparison.
 """
 
 import logging
@@ -31,36 +31,40 @@ class DedupAgent:
         Returns {new: [...], duplicates: [...]}.
 
         Dedup logic:
-        1. Encrypt each phone
-        2. Batch-fetch existing encrypted phones for this tenant
-        3. Split into new vs duplicate
+        1. Hash each phone (deterministic HMAC-SHA256)
+        2. Encrypt each phone (Fernet for storage)
+        3. Batch-fetch existing phone hashes for this tenant
+        4. Split into new vs duplicate
         """
         if not rows:
             return {"new": [], "duplicates": []}
 
-        # Build a lookup of encrypted_phone → row
-        phone_to_row: dict[str, ExtractedRow] = {}
+        # Build a lookup of phone_hash → row
+        hash_to_row: dict[str, ExtractedRow] = {}
         for row in rows:
-            encrypted = encryption_service.encrypt(row["phone"])
-            row["_phone_encrypted"] = encrypted  # Stash for later use
-            phone_to_row[encrypted] = row
+            phone = row["phone"]
+            phone_hash = encryption_service.hash_phone(phone)
+            phone_encrypted = encryption_service.encrypt(phone)
+            row["_phone_hash"] = phone_hash  # Stash for later use
+            row["_phone_encrypted"] = phone_encrypted  # Stash for later use
+            hash_to_row[phone_hash] = row
 
-        # Batch-fetch existing patients for this tenant
-        encrypted_phones = list(phone_to_row.keys())
+        # Batch-fetch existing patients for this tenant by hash
+        phone_hashes = list(hash_to_row.keys())
         result = await db.execute(
-            select(Patient.phone_encrypted).where(
+            select(Patient.phone_hash).where(
                 Patient.tenant_id == tenant_id,
-                Patient.phone_encrypted.in_(encrypted_phones),
+                Patient.phone_hash.in_(phone_hashes),
             )
         )
-        existing_phones = {row[0] for row in result.fetchall()}
+        existing_hashes = {row[0] for row in result.fetchall()}
 
         # Split
         new_rows: list[ExtractedRow] = []
         dup_rows: list[ExtractedRow] = []
 
-        for encrypted, row in phone_to_row.items():
-            if encrypted in existing_phones:
+        for phone_hash, row in hash_to_row.items():
+            if phone_hash in existing_hashes:
                 dup_rows.append(row)
             else:
                 new_rows.append(row)

@@ -20,8 +20,9 @@ class Patient(Base):
     tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
     phone_encrypted = Column(String, nullable=False)
+    phone_hash = Column(String, nullable=False, index=True)  # Deterministic hash for dedup
     preferred_channel = Column(Enum(PreferredChannel), nullable=False, default=PreferredChannel.WHATSAPP)
-    has_whatsapp = Column(Boolean, default=None)
+    has_whatsapp = Column(Boolean, default=False)
     language_preference = Column(String)
     is_optout = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -30,3 +31,4 @@ class Patient(Base):
     # Relationships
     tenant = relationship("Tenant", back_populates="patients")
     appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
+    reminders = relationship("Reminder", back_populates="patient", cascade="all, delete-orphan")

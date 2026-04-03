@@ -10,6 +10,7 @@ from app.features.upload.models import UploadLog, UploadStatus
 from app.features.audit.models import AuditLog
 from app.features.billing.models import Payment
 from app.features.staff.models import Staff
+from app.features.clinics.models import ClinicLocation
 
 __all__ = [
     "Tenant",
@@ -26,4 +27,5 @@ __all__ = [
     "AuditLog",
     "Payment",
     "Staff",
+    "ClinicLocation",
 ]

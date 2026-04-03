@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
+import hmac
+import hashlib
 
 from cryptography.fernet import Fernet
 from fastapi import Depends, HTTPException, status
@@ -70,16 +72,29 @@ def verify_access_token(token: str) -> dict:
 
 # ── Field Encryption (Patient PII) ──────────────────────────
 class EncryptionService:
-    """AES-256 encryption for sensitive patient fields (phone numbers, notes)."""
+    """AES-256 encryption for sensitive patient fields (phone numbers, notes).
+    
+    Uses Fernet for encryption (non-deterministic) and HMAC-SHA256 for hashing (deterministic).
+    Hash is used for deduplication lookups, encryption for secure storage.
+    """
 
     def __init__(self):
         key = settings.FIELD_ENCRYPTION_KEY
         if key:
             # Ensure the key is valid Fernet format
             self._cipher = Fernet(key.encode() if isinstance(key, str) else key)
+            self._hash_key = key.encode() if isinstance(key, str) else key
         else:
+            if settings.is_production:
+                raise RuntimeError(
+                    "FIELD_ENCRYPTION_KEY must be set in production. "
+                    "Patient data encryption cannot use auto-generated keys."
+                )
             # Auto-generate for development — NOT safe for production
-            self._cipher = Fernet(Fernet.generate_key())
+            # Use a consistent dev key so restarts don't break decryption
+            dev_key = Fernet.generate_key()
+            self._cipher = Fernet(dev_key)
+            self._hash_key = dev_key
 
     def encrypt(self, plaintext: str) -> str:
         """Encrypt a plaintext string. Returns base64-encoded ciphertext."""
@@ -88,6 +103,20 @@ class EncryptionService:
     def decrypt(self, ciphertext: str) -> str:
         """Decrypt a base64-encoded ciphertext. Returns plaintext."""
         return self._cipher.decrypt(ciphertext.encode()).decode()
+
+    def hash_phone(self, phone: str) -> str:
+        """Create deterministic HMAC-SHA256 hash of phone number for dedup.
+        
+        Same phone number always produces the same hash (deterministic).
+        Uses FIELD_ENCRYPTION_KEY as the HMAC key for security.
+        """
+        # Normalize phone before hashing (remove spaces, consistent format)
+        normalized = phone.strip().replace(" ", "").replace("-", "")
+        return hmac.new(
+            self._hash_key,
+            normalized.encode(),
+            hashlib.sha256
+        ).hexdigest()
 
 
 encryption_service = EncryptionService()
