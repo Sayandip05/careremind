@@ -67,7 +67,7 @@ async def upload_excel(
     try:
         result = await orchestrator.process("excel", file_bytes, tenant_id, db)
 
-        upload_log.status = UploadStatus.COMPLETED.value
+        upload_log.status = UploadStatus.COMPLETED
         upload_log.total_rows = result["total_rows"]
         upload_log.duplicates_skipped = result["duplicates"]
         upload_log.failed_rows = result["skipped"]

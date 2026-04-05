@@ -66,3 +66,7 @@ desktop.ini
 *.pem
 *.key
 *.crt
+
+# ── Docs & Internal Plans ────────────────────────────────────
+docs/
+implementation_plan.md
