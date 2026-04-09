@@ -47,3 +47,5 @@ class Tenant(Base):
     staff = relationship("Staff", back_populates="tenant", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="tenant", cascade="all, delete-orphan")
     clinic_locations = relationship("ClinicLocation", back_populates="tenant", cascade="all, delete-orphan")
+    bookings = relationship("Booking", back_populates="tenant", cascade="all, delete-orphan")
+    daily_schedules = relationship("DailySchedule", back_populates="tenant", cascade="all, delete-orphan")

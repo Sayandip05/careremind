@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     AWS_SECRET_KEY: str = ""
     AWS_TEXTRACT_REGION: str = ""
 
-    # ── Payments (V4) ────────────────────────────────────────
+    # ── Payments (V2 — Booking) ─────────────────────────────
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_SECRET: str = ""
     RAZORPAY_WEBHOOK_SECRET: str = ""

@@ -11,6 +11,7 @@ from app.features.audit.models import AuditLog
 from app.features.billing.models import Payment
 from app.features.staff.models import Staff
 from app.features.clinics.models import ClinicLocation
+from app.features.booking.models import Booking, BookingStatus, PaymentStatus, DailySchedule
 
 __all__ = [
     "Tenant",
@@ -28,4 +29,8 @@ __all__ = [
     "Payment",
     "Staff",
     "ClinicLocation",
+    "Booking",
+    "BookingStatus",
+    "PaymentStatus",
+    "DailySchedule",
 ]

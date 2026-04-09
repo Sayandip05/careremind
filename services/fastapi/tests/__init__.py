@@ -1,1 +1,4 @@
-# FastAPI tests package
+"""
+Test suite for CareRemind API.
+"""
+

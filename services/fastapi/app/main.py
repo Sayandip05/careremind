@@ -22,6 +22,7 @@ from app.features.audit.router import router as audit_router
 from app.features.dashboard.router import router as dashboard_router
 from app.features.webhooks.router import router as webhooks_router
 from app.features.clinics.router import router as clinics_router
+from app.features.booking.router import router as booking_router
 from app.core.config import settings
 from app.core.database import get_db
 from app.middleware.auth import AuthMiddleware
@@ -56,9 +57,53 @@ logger = logging.getLogger("careremind")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Runs on application startup and shutdown."""
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    from apscheduler.triggers.interval import IntervalTrigger
+    from app.scheduler.jobs import SCHEDULED_JOBS
+    
     logger.info("CareRemind API starting up — environment: %s", settings.ENVIRONMENT)
+    
+    # Start scheduler for background jobs
+    scheduler = AsyncIOScheduler()
+    
+    for job_config in SCHEDULED_JOBS:
+        func = job_config["func"]
+        trigger_type = job_config["trigger"]
+        job_id = job_config["id"]
+        job_name = job_config["name"]
+        
+        if trigger_type == "cron":
+            trigger = CronTrigger(
+                hour=job_config.get("hour"),
+                minute=job_config.get("minute"),
+            )
+        elif trigger_type == "interval":
+            trigger = IntervalTrigger(
+                minutes=job_config.get("minutes"),
+            )
+        else:
+            logger.error("Unknown trigger type: %s", trigger_type)
+            continue
+        
+        scheduler.add_job(
+            func,
+            trigger=trigger,
+            id=job_id,
+            name=job_name,
+            replace_existing=job_config.get("replace_existing", True),
+        )
+        
+        logger.info("Scheduled job: %s", job_name)
+    
+    scheduler.start()
+    logger.info("Scheduler started with %d jobs", len(SCHEDULED_JOBS))
+    
     yield
+    
     logger.info("CareRemind API shutting down")
+    scheduler.shutdown()
+    logger.info("Scheduler stopped")
 
 
 # ── App Instance ─────────────────────────────────────────────
@@ -103,6 +148,7 @@ app.include_router(audit_router, prefix="/api/v1/audit", tags=["audit"])
 app.include_router(dashboard_router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(webhooks_router, prefix="/api/v1/webhooks", tags=["webhooks"])
 app.include_router(clinics_router, prefix="/api/v1/clinics", tags=["clinics"])
+app.include_router(booking_router, prefix="/api/v1/booking", tags=["booking"])
 
 
 # ── Health Check ─────────────────────────────────────────────

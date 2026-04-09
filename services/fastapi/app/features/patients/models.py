@@ -32,3 +32,4 @@ class Patient(Base):
     tenant = relationship("Tenant", back_populates="patients")
     appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="patient", cascade="all, delete-orphan")
+    bookings = relationship("Booking", back_populates="patient", cascade="all, delete-orphan")

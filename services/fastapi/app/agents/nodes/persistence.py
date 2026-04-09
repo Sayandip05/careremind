@@ -7,6 +7,8 @@ import logging
 import uuid
 from datetime import date
 
+from sqlalchemy import select
+
 from app.agents.state import IngestionState
 from app.agents.graphs.scheduling import scheduling_graph
 from app.core.security import encryption_service

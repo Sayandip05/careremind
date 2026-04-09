@@ -1,110 +1,97 @@
 """
-Shared test fixtures for CareRemind API tests.
-Uses PostgreSQL for testing (same as production).
-Set TEST_DATABASE_URL environment variable or use local PostgreSQL.
+Pytest configuration and fixtures.
 """
 
 import asyncio
-import os
-import uuid
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Generator
 
 import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.core.database import Base, get_db
-from app.core.security import create_access_token, get_password_hash
 from app.main import app
-from app.features.auth.models import Tenant
 
-# ── Test Database (PostgreSQL) ───────────────────────────────
-# Use environment variable or default to local PostgreSQL
-TEST_DATABASE_URL = os.getenv(
-    "TEST_DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/careremind_test"
-)
+# Test database URL (use in-memory SQLite for fast tests)
+TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-TestSessionLocal = async_sessionmaker(
-    bind=test_engine, class_=AsyncSession, expire_on_commit=False,
-)
 
-# ── Override DB dependency ───────────────────────────────────
-async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with TestSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-
-app.dependency_overrides[get_db] = override_get_db
-
-# ── Session-scoped event loop ───────────────────────────────
 @pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
+def event_loop() -> Generator:
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
-# ── Create/drop tables per test session ─────────────────────
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def setup_database():
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
 
-# ── Test DB session ─────────────────────────────────────────
-@pytest_asyncio.fixture
-async def db() -> AsyncGenerator[AsyncSession, None]:
-    async with TestSessionLocal() as session:
+@pytest.fixture(scope="function")
+async def db_engine():
+    """Create a test database engine."""
+    engine = create_async_engine(
+        TEST_DATABASE_URL,
+        poolclass=NullPool,
+    )
+    
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    yield engine
+    
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    
+    await engine.dispose()
+
+
+@pytest.fixture(scope="function")
+async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
+    """Create a test database session."""
+    async_session = async_sessionmaker(
+        db_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    
+    async with async_session() as session:
         yield session
 
-# ── HTTP Client ─────────────────────────────────────────────
-@pytest_asyncio.fixture
-async def client() -> AsyncGenerator[AsyncClient, None]:
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+
+@pytest.fixture(scope="function")
+async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    """Create a test client with database session override."""
+    
+    async def override_get_db():
+        yield db_session
+    
+    app.dependency_overrides[get_db] = override_get_db
+    
+    async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
-
-# ── Test Tenant (Doctor) ────────────────────────────────────
-@pytest_asyncio.fixture
-async def test_tenant(db: AsyncSession) -> Tenant:
-    """Create a test doctor account and return it."""
-    tenant_id = str(uuid.uuid4())
-    tenant = Tenant(
-        id=tenant_id,
-        doctor_name="Dr. Test",
-        clinic_name="Test Clinic",
-        email=f"test_{uuid.uuid4().hex[:8]}@example.com",
-        phone=None,
-        whatsapp_number=None,
-        hashed_password=get_password_hash("TestPass123"),
-        specialty="general",
-        language_preference="english",
-        is_active=True,
-    )
-    db.add(tenant)
-    await db.commit()
-    await db.refresh(tenant)
-    return tenant
+    
+    app.dependency_overrides.clear()
 
 
-# ── Auth Token for test tenant ──────────────────────────────
-@pytest_asyncio.fixture
-async def auth_headers(test_tenant: Tenant) -> dict:
-    """Return Authorization headers with a valid JWT for the test tenant."""
-    token = create_access_token(
-        tenant_id=str(test_tenant.id),
-        email=test_tenant.email,
-    )
-    return {"Authorization": f"Bearer {token}"}
+@pytest.fixture
+def sample_tenant_data():
+    """Sample tenant data for testing."""
+    return {
+        "doctor_name": "Dr. Test Sharma",
+        "clinic_name": "Test Clinic",
+        "email": "test@example.com",
+        "password": "TestPassword123!",
+        "specialty": "general",
+        "language_preference": "english",
+    }
+
+
+@pytest.fixture
+def sample_patient_data():
+    """Sample patient data for testing."""
+    return {
+        "name": "Test Patient",
+        "phone": "+919876543210",
+        "preferred_channel": "whatsapp",
+        "language_preference": "english",
+    }
+

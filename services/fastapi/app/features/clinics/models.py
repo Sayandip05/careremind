@@ -37,6 +37,8 @@ class ClinicLocation(Base):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="clinic_locations")
+    bookings = relationship("Booking", back_populates="clinic_location", cascade="all, delete-orphan")
+    daily_schedules = relationship("DailySchedule", back_populates="clinic_location", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<ClinicLocation(id={self.id}, name={self.clinic_name}, city={self.city})>"

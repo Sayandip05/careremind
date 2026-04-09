@@ -7,17 +7,20 @@ __pycache__/
 dist/
 build/
 *.egg
+*.pyc
 
 # ── Virtual Environments ─────────────────────────────────────
 venv/
 .venv/
 env/
+ENV/
 
 # ── Environment Variables ────────────────────────────────────
 .env
 .env.local
 .env.production
 .env.staging
+!.env.example
 
 # ── IDE / Editor ─────────────────────────────────────────────
 .vscode/
@@ -25,8 +28,6 @@ env/
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
 
 # ── Node.js ──────────────────────────────────────────────────
 node_modules/
@@ -35,6 +36,8 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
+frontend/dist/
 
 # ── Docker ───────────────────────────────────────────────────
 *.log
@@ -49,6 +52,9 @@ docker-compose.override.yml
 htmlcov/
 .pytest_cache/
 .mypy_cache/
+.tox/
+coverage.xml
+*.cover
 
 # ── Ruff ─────────────────────────────────────────────────────
 .ruff_cache/
@@ -67,6 +73,11 @@ desktop.ini
 *.key
 *.crt
 
-# ── Docs & Internal Plans ────────────────────────────────────
+# ── Generated Files ──────────────────────────────────────────
+services/fastapi/generated_pdfs/
+services/fastapi/uploads/
+
+# ── Internal Planning (not for production) ───────────────────
+MEMORY.md
 docs/
-implementation_plan.md
+
