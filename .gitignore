@@ -21,6 +21,7 @@ ENV/
 .env.production
 .env.staging
 !.env.example
+!.env.local.example
 
 # ── IDE / Editor ─────────────────────────────────────────────
 .vscode/

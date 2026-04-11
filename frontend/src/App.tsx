@@ -10,6 +10,8 @@ import Settings from '@/pages/Settings';
 import Billing from '@/pages/Billing';
 import Staff from '@/pages/Staff';
 import Landing from '@/pages/Landing';
+import Onboarding from '@/pages/Onboarding';
+import NotFound from '@/pages/NotFound';
 import { useAuthStore } from '@/store/authStore';
 
 export default function App() {
@@ -22,6 +24,7 @@ export default function App() {
         <Route path="/" element={!isAuthenticated ? <Landing /> : <Navigate to="/dashboard" replace />} />
         
         <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/onboarding" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Onboarding />} />
 
         {/* Protected routes with Layout */}
         <Route element={<Layout />}>
@@ -35,7 +38,7 @@ export default function App() {
           <Route path="/staff" element={<Staff />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

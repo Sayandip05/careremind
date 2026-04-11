@@ -18,6 +18,7 @@ export const authApi = {
     phone?: string;
     specialty?: string;
     whatsapp_number?: string;
+    language_preference?: string;
   }) => client.post('/auth/register', data),
 
   getProfile: () => client.get('/auth/me'),
