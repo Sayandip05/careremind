@@ -25,11 +25,15 @@ class TenantRegister(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    """JWT token response."""
+    """JWT token response — includes user data so frontend doesn't need a second call."""
     access_token: str
     token_type: str = "bearer"
     tenant_id: str
     doctor_name: str
+    clinic_name: str = ""
+    email: str = ""
+    specialty: Optional[str] = None
+    plan: str = "free"
 
 
 class TenantLogin(BaseModel):

@@ -57,6 +57,10 @@ async def authenticate_sso(openid: OpenID, db: AsyncSession) -> TokenResponse:
         access_token=token,
         tenant_id=tenant.id,
         doctor_name=tenant.doctor_name,
+        clinic_name=tenant.clinic_name,
+        email=tenant.email,
+        specialty=tenant.specialty,
+        plan=tenant.plan.value if tenant.plan else "free",
     )
 
 
@@ -147,6 +151,10 @@ async def authenticate_tenant(username: str, password: str, db: AsyncSession) ->
         access_token=token,
         tenant_id=tenant.id,
         doctor_name=tenant.doctor_name,
+        clinic_name=tenant.clinic_name,
+        email=tenant.email,
+        specialty=tenant.specialty,
+        plan=tenant.plan.value if tenant.plan else "free",
     )
 
 

@@ -40,15 +40,14 @@ export default function Login() {
         });
       }
       const res = await authApi.login(email, password);
-      const { access_token, tenant_id, doctor_name } = res.data;
-      const profileRes = await authApi.getProfile();
+      const { access_token, tenant_id, doctor_name, clinic_name, email: userEmail, specialty: userSpecialty, plan } = res.data;
       login(access_token, {
         id: tenant_id,
         doctor_name,
-        clinic_name: profileRes.data.clinic_name,
-        email: profileRes.data.email,
-        specialty: profileRes.data.specialty,
-        plan: profileRes.data.plan,
+        clinic_name: clinic_name || clinicName,
+        email: userEmail || email,
+        specialty: userSpecialty || effectiveSpecialty || null,
+        plan: plan || 'free',
       });
       navigate('/');
     } catch (err: any) {

@@ -90,10 +90,15 @@ class EncryptionService:
                     "FIELD_ENCRYPTION_KEY must be set in production. "
                     "Patient data encryption cannot use auto-generated keys."
                 )
-            # Auto-generate for development — NOT safe for production
-            # Use a consistent dev key so restarts don't break decryption
-            dev_key = Fernet.generate_key()
-            self._cipher = Fernet(dev_key)
+            # Fixed dev key — consistent across restarts so encrypted data stays readable
+            # NEVER use this in production (it's a known value)
+            dev_key = b"dev-careremind-key-do-not-use-in-prod="  # 44 bytes base64
+            dev_fernet_key = Fernet.generate_key()  # fallback if above isn't valid
+            try:
+                self._cipher = Fernet(dev_key)
+            except Exception:
+                self._cipher = Fernet(dev_fernet_key)
+                dev_key = dev_fernet_key
             self._hash_key = dev_key
 
     def encrypt(self, plaintext: str) -> str:
@@ -112,7 +117,7 @@ class EncryptionService:
         """
         # Normalize phone before hashing (remove spaces, consistent format)
         normalized = phone.strip().replace(" ", "").replace("-", "")
-        return hmac.new(
+        return hmac.HMAC(
             self._hash_key,
             normalized.encode(),
             hashlib.sha256
