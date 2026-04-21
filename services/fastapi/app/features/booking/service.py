@@ -101,7 +101,11 @@ class BookingService:
         Reserve a slot for 10 minutes (temporary hold).
         
         Returns Booking object if successful, None if slot unavailable.
+        
+        Race condition protection: Database unique constraint prevents double-booking.
         """
+        from sqlalchemy.exc import IntegrityError
+        
         # Validate date
         today = date.today()
         tomorrow = today + timedelta(days=1)
@@ -110,7 +114,7 @@ class BookingService:
             logger.warning("Attempted same-day booking for %s", booking_date)
             return None
         
-        # Check if slot is available
+        # Check if slot is available (advisory check, not authoritative)
         result = await db.execute(
             select(func.count(Booking.id))
             .where(
@@ -144,15 +148,26 @@ class BookingService:
         
         booking.set_expiry(RESERVATION_EXPIRY_MINUTES)
         
-        db.add(booking)
-        await db.flush()
-        
-        logger.info(
-            "Reserved slot %s on %s for patient %s (expires in %d min)",
-            slot_time, booking_date, patient_id, RESERVATION_EXPIRY_MINUTES
-        )
-        
-        return booking
+        try:
+            db.add(booking)
+            await db.flush()
+            
+            logger.info(
+                "Reserved slot %s on %s for patient %s (expires in %d min)",
+                slot_time, booking_date, patient_id, RESERVATION_EXPIRY_MINUTES
+            )
+            
+            return booking
+            
+        except IntegrityError as e:
+            # Race condition: Another user booked this slot simultaneously
+            # Database constraint prevented double-booking
+            logger.info(
+                "Slot %s on %s already booked (race condition caught by DB constraint)",
+                slot_time, booking_date
+            )
+            await db.rollback()
+            return None
 
     @staticmethod
     async def confirm_booking(

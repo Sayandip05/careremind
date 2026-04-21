@@ -13,7 +13,12 @@ engine = create_async_engine(
     pool_size=settings.DB_POOL_SIZE,
     max_overflow=settings.DB_MAX_OVERFLOW,
     pool_pre_ping=True,  # detect stale connections
+    pool_recycle=3600,  # recycle connections every hour
     echo=not settings.is_production,  # SQL logging in dev only
+    connect_args={
+        "timeout": 10,  # connection timeout (seconds)
+        "command_timeout": 30,  # query timeout (seconds)
+    }
 )
 
 # ── Session Factory ──────────────────────────────────────────

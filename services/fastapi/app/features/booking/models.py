@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, Time, Date
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, Time, Date, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -33,8 +33,26 @@ class Booking(Base):
     3. Completes payment → status=CONFIRMED
     4. At midnight → assigned serial_number
     5. After visit → status=COMPLETED
+    
+    Race Condition Protection:
+    - Partial unique constraint prevents double-booking
+    - Only applies to RESERVED and CONFIRMED statuses
+    - Allows multiple CANCELLED/COMPLETED bookings for same slot
     """
     __tablename__ = "bookings"
+    
+    # Prevent double-booking: Only 1 active booking per slot
+    __table_args__ = (
+        # Partial unique index (PostgreSQL only)
+        Index(
+            'idx_unique_active_slot',
+            'clinic_location_id',
+            'booking_date',
+            'slot_time',
+            unique=True,
+            postgresql_where="status IN ('reserved', 'confirmed')"
+        ),
+    )
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)

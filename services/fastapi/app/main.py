@@ -17,12 +17,12 @@ from app.features.appointments.router import router as appointments_router
 from app.features.reminders.router import router as reminders_router
 from app.features.upload.router import router as upload_router
 from app.features.billing.router import router as billing_router
-from app.features.staff.router import router as staff_router
 from app.features.audit.router import router as audit_router
 from app.features.dashboard.router import router as dashboard_router
 from app.features.webhooks.router import router as webhooks_router
 from app.features.clinics.router import router as clinics_router
 from app.features.booking.router import router as booking_router
+from app.features.contact.router import router as contact_router
 from app.core.config import settings
 from app.core.database import get_db
 from app.middleware.auth import AuthMiddleware
@@ -33,7 +33,7 @@ from app.middleware.input_sanitizer import SecurityHeadersMiddleware
 from app.middleware.error_handler import ErrorHandlerMiddleware
 
 # ── Sentry Initialization ────────────────────────────────────
-if settings.SENTRY_DSN:
+if settings.ENABLE_SENTRY and settings.SENTRY_DSN:
     sentry_sdk.init(
         dsn=settings.SENTRY_DSN,
         environment=settings.ENVIRONMENT,
@@ -44,6 +44,7 @@ if settings.SENTRY_DSN:
         traces_sample_rate=0.1 if settings.is_production else 1.0,
         send_default_pii=False,
     )
+    logger.info("Sentry monitoring enabled")
 
 # ── Logging ──────────────────────────────────────────────────
 logging.basicConfig(
@@ -57,12 +58,38 @@ logger = logging.getLogger("careremind")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Runs on application startup and shutdown."""
+    import signal
+    import httpx
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
     from apscheduler.triggers.cron import CronTrigger
     from apscheduler.triggers.interval import IntervalTrigger
     from app.scheduler.jobs import SCHEDULED_JOBS
+    from app.core.database import engine
+    from app.core.cache import cache
     
     logger.info("CareRemind API starting up — environment: %s", settings.ENVIRONMENT)
+    
+    # ── Startup ──────────────────────────────────────────────
+    
+    # Create shared HTTP client for connection pooling
+    app.state.http_client = httpx.AsyncClient(
+        timeout=30.0,
+        limits=httpx.Limits(
+            max_connections=100,
+            max_keepalive_connections=20
+        )
+    )
+    logger.info("HTTP client initialized with connection pooling")
+    
+    # Inject HTTP client into services
+    from app.core.integrations.whatsapp_service import set_http_client as set_whatsapp_client
+    from app.core.integrations.sms_service import set_http_client as set_sms_client
+    from app.core.integrations.razorpay_service import set_http_client as set_razorpay_client
+    
+    set_whatsapp_client(app.state.http_client)
+    set_sms_client(app.state.http_client)
+    set_razorpay_client(app.state.http_client)
+    logger.info("HTTP client injected into all services")
     
     # Start scheduler for background jobs
     scheduler = AsyncIOScheduler()
@@ -99,11 +126,41 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     logger.info("Scheduler started with %d jobs", len(SCHEDULED_JOBS))
     
+    # ── Signal Handlers for Graceful Shutdown ────────────────
+    def handle_shutdown_signal(signum, frame):
+        """Handle SIGTERM/SIGINT for graceful shutdown in Docker/K8s."""
+        logger.info("Received signal %s, initiating graceful shutdown", signum)
+    
+    signal.signal(signal.SIGTERM, handle_shutdown_signal)
+    signal.signal(signal.SIGINT, handle_shutdown_signal)
+    logger.info("Signal handlers registered (SIGTERM, SIGINT)")
+    
     yield
     
-    logger.info("CareRemind API shutting down")
-    scheduler.shutdown()
+    # ── Shutdown ─────────────────────────────────────────────
+    logger.info("CareRemind API shutting down gracefully")
+    
+    # 1. Stop scheduler (wait for running jobs to finish)
+    logger.info("Stopping scheduler...")
+    scheduler.shutdown(wait=True)
     logger.info("Scheduler stopped")
+    
+    # 2. Close HTTP client
+    logger.info("Closing HTTP client...")
+    await app.state.http_client.aclose()
+    logger.info("HTTP client closed")
+    
+    # 3. Close Redis connections
+    logger.info("Closing Redis connections...")
+    await cache.close()
+    logger.info("Redis connections closed")
+    
+    # 4. Dispose database engine (close all connections)
+    logger.info("Disposing database engine...")
+    await engine.dispose()
+    logger.info("Database connections closed")
+    
+    logger.info("Graceful shutdown complete")
 
 
 # ── App Instance ─────────────────────────────────────────────
@@ -143,12 +200,12 @@ app.include_router(
 app.include_router(reminders_router, prefix="/api/v1/reminders", tags=["reminders"])
 app.include_router(upload_router, prefix="/api/v1/upload", tags=["upload"])
 app.include_router(billing_router, prefix="/api/v1/billing", tags=["billing"])
-app.include_router(staff_router, prefix="/api/v1/staff", tags=["staff"])
 app.include_router(audit_router, prefix="/api/v1/audit", tags=["audit"])
 app.include_router(dashboard_router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(webhooks_router, prefix="/api/v1/webhooks", tags=["webhooks"])
 app.include_router(clinics_router, prefix="/api/v1/clinics", tags=["clinics"])
 app.include_router(booking_router, prefix="/api/v1/booking", tags=["booking"])
+app.include_router(contact_router, prefix="/api/v1/contact", tags=["contact"])
 
 
 # ── Health Check ─────────────────────────────────────────────
