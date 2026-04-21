@@ -1,7 +1,7 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -15,21 +15,42 @@ logger = logging.getLogger("careremind.billing")
 router = APIRouter()
 
 
-@router.get("/history", response_model=list[PaymentResponse])
+@router.get("/history")
 async def get_payment_history(
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    per_page: int = Query(20, ge=1, le=100, description="Records per page"),
     tenant: Tenant = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get all payments for the authenticated tenant."""
+    """Get paginated payment history for the authenticated tenant."""
     try:
+        base_stmt = select(Payment).where(Payment.tenant_id == tenant.id)
+
+        # Total count for pagination metadata
+        count_stmt = select(func.count()).select_from(base_stmt.subquery())
+        total_result = await db.execute(count_stmt)
+        total = total_result.scalar_one()
+
+        # Paginated records
+        offset = (page - 1) * per_page
         stmt = (
-            select(Payment)
-            .where(Payment.tenant_id == tenant.id)
+            base_stmt
             .order_by(Payment.created_at.desc())
+            .offset(offset)
+            .limit(per_page)
         )
         result = await db.execute(stmt)
         payments = result.scalars().all()
-        return payments
+
+        return {
+            "data": [PaymentResponse.model_validate(p) for p in payments],
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "total_pages": (total + per_page - 1) // per_page,
+            },
+        }
     except Exception as e:
         logger.error("Failed to fetch payment history: %s", e)
         raise HTTPException(
@@ -55,3 +76,4 @@ async def get_subscription_status(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch subscription status",
         )
+

@@ -1,5 +1,10 @@
 version: '3.8'
 
+# ── CareRemind Production Compose ────────────────────────────
+# Database: Supabase (external — no postgres service here)
+# Target: ~800 concurrent doctors on a single server
+# Scale path: add more fastapi replicas + PgBouncer for 2000+ doctors
+
 services:
   nginx:
     build: ./infrastructure/nginx
@@ -16,12 +21,24 @@ services:
         condition: service_healthy
       frontend:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   fastapi:
     build: ./services/fastapi
     restart: always
     env_file:
       - .env
+    environment:
+      - ENVIRONMENT=production
+      - WEB_CONCURRENCY=4
+      # DB pool tuned for 800 concurrent doctors:
+      # 4 workers × 15 connections = 60 total → sufficient for 800 req/s at typical clinic load
+      - DB_POOL_SIZE=15
+      - DB_MAX_OVERFLOW=15
     depends_on:
       - redis
     healthcheck:
@@ -36,16 +53,20 @@ services:
     restart: always
     env_file:
       - .env
+    environment:
+      - ENVIRONMENT=production
     depends_on:
       - redis
     deploy:
-      replicas: 2
+      replicas: 3  # 3 Celery workers for reminder delivery throughput
 
   scheduler:
     build: ./services/scheduler
     restart: always
     env_file:
       - .env
+    environment:
+      - ENVIRONMENT=production
     depends_on:
       - redis
 
@@ -56,6 +77,10 @@ services:
   redis:
     image: redis:7-alpine
     restart: always
+    # Persistence: AOF (Append-Only File) — survive container restarts
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -65,3 +90,5 @@ services:
 volumes:
   ssl_certs:
   certbot_webroot:
+  redis_data:
+
