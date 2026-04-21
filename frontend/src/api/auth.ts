@@ -22,4 +22,12 @@ export const authApi = {
   }) => client.post('/auth/register', data),
 
   getProfile: () => client.get('/auth/me'),
+
+  updateProfile: (data: {
+    doctor_name?: string;
+    clinic_name?: string;
+    specialty?: string;
+    whatsapp_number?: string;
+  }) => client.patch('/auth/me', data),
 };
+

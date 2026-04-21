@@ -13,20 +13,37 @@ import Onboarding from '@/pages/Onboarding';
 import NotFound from '@/pages/NotFound';
 import { useAuthStore } from '@/store/authStore';
 
+/**
+ * ProtectedRoute — redirects to /login if the user is not authenticated.
+ * Wraps any route that requires a valid JWT session.
+ */
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuthStore();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
+
 export default function App() {
   const { isAuthenticated } = useAuthStore();
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Landing page at root for unauthenticated users */}
+        {/* Public routes */}
         <Route path="/" element={!isAuthenticated ? <Landing /> : <Navigate to="/dashboard" replace />} />
-        
         <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/onboarding" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Onboarding />} />
 
-        {/* Protected routes with Layout */}
-        <Route element={<Layout />}>
+        {/* Protected routes — all require authentication */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/upload" element={<Upload />} />
           <Route path="/patients" element={<Patients />} />
@@ -41,3 +58,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
