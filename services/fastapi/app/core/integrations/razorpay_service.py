@@ -13,6 +13,14 @@ from app.core.config import settings
 
 logger = logging.getLogger("careremind.services.razorpay")
 
+# Shared HTTP client (will be set by main.py lifespan)
+_http_client: Optional[httpx.AsyncClient] = None
+
+def set_http_client(client: httpx.AsyncClient):
+    """Set the shared HTTP client for connection pooling."""
+    global _http_client
+    _http_client = client
+
 
 class RazorpayService:
     """Handles Razorpay payment operations."""
@@ -20,7 +28,7 @@ class RazorpayService:
     def __init__(self):
         self.key_id = settings.RAZORPAY_KEY_ID
         self.key_secret = settings.RAZORPAY_SECRET
-        self.base_url = "https://api.razorpay.com/v1"
+        self.base_url = settings.RAZORPAY_API_URL
 
     @property
     def is_configured(self) -> bool:
@@ -69,12 +77,13 @@ class RazorpayService:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/orders",
-                    json=payload,
-                    auth=(self.key_id, self.key_secret),
-                )
+            # Use shared HTTP client for connection pooling
+            client = _http_client or httpx.AsyncClient(timeout=30.0)
+            response = await client.post(
+                f"{self.base_url}/orders",
+                json=payload,
+                auth=(self.key_id, self.key_secret),
+            )
 
             data = response.json()
 
@@ -165,11 +174,12 @@ class RazorpayService:
             }
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(
-                    f"{self.base_url}/payments/{payment_id}",
-                    auth=(self.key_id, self.key_secret),
-                )
+            # Use shared HTTP client for connection pooling
+            client = _http_client or httpx.AsyncClient(timeout=30.0)
+            response = await client.get(
+                f"{self.base_url}/payments/{payment_id}",
+                auth=(self.key_id, self.key_secret),
+            )
 
             data = response.json()
 

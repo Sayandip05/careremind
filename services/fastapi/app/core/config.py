@@ -27,10 +27,15 @@ class Settings(BaseSettings):
     JWT_EXPIRY_HOURS: int = 24
     
     # ── Social OAuth Logins ──────────────────────────────────
+    ENABLE_GOOGLE_OAUTH: bool = False
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+    
+    ENABLE_FACEBOOK_OAUTH: bool = False
     FACEBOOK_CLIENT_ID: str = ""
     FACEBOOK_CLIENT_SECRET: str = ""
+    FACEBOOK_REDIRECT_URI: str = ""
 
     # ── Patient Data Encryption ──────────────────────────────
     FIELD_ENCRYPTION_KEY: str = ""
@@ -38,17 +43,21 @@ class Settings(BaseSettings):
     # ── AI — Message Generation ──────────────────────────────
     GROQ_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    OPENAI_API_URL: str = "https://api.openai.com/v1/chat/completions"
 
     # ── WhatsApp (Meta Cloud API) ────────────────────────────
     META_WHATSAPP_TOKEN: str = ""
     META_PHONE_NUMBER_ID: str = ""
+    META_WHATSAPP_API_VERSION: str = "v21.0"
 
     # ── SMS Fallback ─────────────────────────────────────────
     FAST2SMS_API_KEY: str = ""
+    FAST2SMS_API_URL: str = "https://www.fast2sms.com/dev/bulkV2"
 
     # ── Vision OCR ───────────────────────────────────────────
     VISION_BACKEND: str = "nvidia"  # nvidia | openai | textract
     NVIDIA_API_KEY: str = ""
+    NVIDIA_API_URL: str = "https://integrate.api.nvidia.com/v1/chat/completions"
     GOOGLE_VISION_KEY: str = ""
 
     # ── Storage ──────────────────────────────────────────────
@@ -64,15 +73,21 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_SECRET: str = ""
     RAZORPAY_WEBHOOK_SECRET: str = ""
+    RAZORPAY_API_URL: str = "https://api.razorpay.com/v1"
 
     # ── API Base URL (for OAuth callbacks) ───────────────────
     API_BASE_URL: str = "http://localhost:8000"
+    FRONTEND_URL: str = "http://localhost:5173"  # Vite dev server
 
     # ── CORS ─────────────────────────────────────────────────
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3002"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:3002"
 
     # ── Monitoring ───────────────────────────────────────────
+    ENABLE_SENTRY: bool = False
     SENTRY_DSN: str = ""
+
+    # ── Background Workers ───────────────────────────────────
+    ENABLE_CELERY: bool = False  # Set to True if using Celery workers
 
     # ── Database Pool ────────────────────────────────────────
     DB_POOL_SIZE: int = 5

@@ -12,7 +12,13 @@ from app.core.config import settings
 
 logger = logging.getLogger("careremind.services.whatsapp")
 
-META_API_VERSION = "v21.0"
+# Shared HTTP client (will be set by main.py lifespan)
+_http_client: Optional[httpx.AsyncClient] = None
+
+def set_http_client(client: httpx.AsyncClient):
+    """Set the shared HTTP client for connection pooling."""
+    global _http_client
+    _http_client = client
 
 
 class WhatsAppService:
@@ -28,6 +34,11 @@ class WhatsAppService:
     def _default_phone_number_id(self) -> str:
         from app.core.config import settings
         return settings.META_PHONE_NUMBER_ID
+    
+    @property
+    def api_version(self) -> str:
+        from app.core.config import settings
+        return settings.META_WHATSAPP_API_VERSION
 
     @property
     def is_configured(self) -> bool:
@@ -48,7 +59,7 @@ class WhatsAppService:
         if not self.token or not sender_id:
             return {"success": False, "error": "WhatsApp credentials not configured"}
 
-        url = f"https://graph.facebook.com/{META_API_VERSION}/{sender_id}/messages"
+        url = f"https://graph.facebook.com/{self.api_version}/{sender_id}/messages"
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
@@ -61,8 +72,9 @@ class WhatsAppService:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(url, json=payload, headers=headers)
+            # Use shared HTTP client for connection pooling
+            client = _http_client or httpx.AsyncClient(timeout=30.0)
+            response = await client.post(url, json=payload, headers=headers)
 
             data = response.json()
 
@@ -109,7 +121,7 @@ class WhatsAppService:
         if not self.token or not sender_id:
             return {"success": False, "error": "WhatsApp credentials not configured"}
 
-        url = f"https://graph.facebook.com/{META_API_VERSION}/{sender_id}/messages"
+        url = f"https://graph.facebook.com/{self.api_version}/{sender_id}/messages"
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
@@ -139,8 +151,9 @@ class WhatsAppService:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(url, json=payload, headers=headers)
+            # Use shared HTTP client for connection pooling
+            client = _http_client or httpx.AsyncClient(timeout=30.0)
+            response = await client.post(url, json=payload, headers=headers)
 
             data = response.json()
 

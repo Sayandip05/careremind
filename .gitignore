@@ -79,6 +79,6 @@ services/fastapi/generated_pdfs/
 services/fastapi/uploads/
 
 # ── Internal Planning (not for production) ───────────────────
-MEMORY.md
-docs/
 
+docs/
+extra_docs/

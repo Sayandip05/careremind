@@ -11,14 +11,13 @@ from app.core.config import settings
 
 logger = logging.getLogger("careremind.services.openai")
 
-OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
-
 
 class OpenAIService:
     """Wrapper for OpenAI ChatCompletion API with vision support."""
 
     def __init__(self):
         self.api_key = settings.OPENAI_API_KEY
+        self.api_url = settings.OPENAI_API_URL
         self.model = "gpt-4o-mini"
 
     async def chat(self, prompt: str, system: str = "") -> str:
@@ -66,7 +65,7 @@ class OpenAIService:
 
         try:
             async with httpx.AsyncClient(timeout=90.0) as client:
-                response = await client.post(OPENAI_CHAT_URL, json=payload, headers=headers)
+                response = await client.post(self.api_url, json=payload, headers=headers)
 
             if response.status_code != 200:
                 logger.error("OpenAI API error %d: %s", response.status_code, response.text)

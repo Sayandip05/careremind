@@ -10,14 +10,13 @@ from app.core.config import settings
 
 logger = logging.getLogger("careremind.services.nvidia")
 
-NVIDIA_CHAT_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
-
 
 class NvidiaService:
     """Wrapper for NVIDIA ChatCompletion API with vision support."""
 
     def __init__(self):
         self.api_key = settings.NVIDIA_API_KEY
+        self.api_url = settings.NVIDIA_API_URL
         self.model = "google/gemma-3-27b-it"
 
     async def vision(self, image_base64: str, prompt: str, system: str = "") -> str:
@@ -67,7 +66,7 @@ class NvidiaService:
         async with httpx.AsyncClient(timeout=90.0) as client:
             try:
                 response = await client.post(
-                    NVIDIA_CHAT_URL, json=payload, headers=headers,
+                    self.api_url, json=payload, headers=headers,
                 )
 
                 if response.status_code != 200:

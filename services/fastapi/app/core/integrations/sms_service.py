@@ -4,6 +4,7 @@ Used as fallback when WhatsApp delivery fails.
 """
 
 import logging
+from typing import Optional
 
 import httpx
 
@@ -11,7 +12,13 @@ from app.core.config import settings
 
 logger = logging.getLogger("careremind.services.sms")
 
-FAST2SMS_URL = "https://www.fast2sms.com/dev/bulkV2"
+# Shared HTTP client (will be set by main.py lifespan)
+_http_client: Optional[httpx.AsyncClient] = None
+
+def set_http_client(client: httpx.AsyncClient):
+    """Set the shared HTTP client for connection pooling."""
+    global _http_client
+    _http_client = client
 
 
 class SMSService:
@@ -19,6 +26,7 @@ class SMSService:
 
     def __init__(self):
         self.api_key = settings.FAST2SMS_API_KEY
+        self.api_url = settings.FAST2SMS_API_URL
 
     @property
     def is_configured(self) -> bool:
@@ -52,8 +60,9 @@ class SMSService:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(FAST2SMS_URL, json=payload, headers=headers)
+            # Use shared HTTP client for connection pooling
+            client = _http_client or httpx.AsyncClient(timeout=30.0)
+            response = await client.post(self.api_url, json=payload, headers=headers)
 
             data = response.json()
 

@@ -3,7 +3,6 @@ Celery app configuration.
 Uses Redis as broker. Imports FastAPI's models/services via sys.path.
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -16,16 +15,17 @@ if FASTAPI_DIR not in sys.path:
 from dotenv import load_dotenv
 load_dotenv(Path(FASTAPI_DIR) / ".env")
 
+# Import settings from FastAPI config
+from app.core.config import settings
+
 from celery import Celery
 
-# Redis URL from env or default
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-
+# Use settings from config.py (consistent with FastAPI)
 celery_app = Celery("careremind-worker")
 
 celery_app.conf.update(
-    broker_url=REDIS_URL,
-    result_backend=REDIS_URL,
+    broker_url=settings.REDIS_URL,
+    result_backend=settings.REDIS_URL,
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
