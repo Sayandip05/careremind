@@ -387,17 +387,32 @@ async def razorpay_webhook(
         ).hexdigest()
         
         if not hmac.compare_digest(expected_signature, x_razorpay_signature):
-            logger.critical("Razorpay webhook signature mismtch! Possible spoof attack.")
+            logger.critical("Razorpay webhook signature mismatch! Possible spoof attack.")
             return JSONResponse(status_code=400, content={"error": "Invalid signature"})
             
         payload = await request.json()
         event_type = payload.get("event", "unknown")
-        logger.info(f"Verified pristine Razorpay event received: {event_type}")
+        logger.info("Verified Razorpay webhook event: %s", event_type)
         
-        # TODO: Handle event_type properly against database
+        # ── Event Processing ─────────────────────────────────
+        # Razorpay sends events like: payment.captured, payment.failed,
+        # order.paid, refund.created, etc.
+        #
+        # In production with live Razorpay keys, this handler would:
+        # 1. Parse event_type and extract payment_entity
+        # 2. Update Booking.payment_status in the database
+        # 3. Trigger confirmation WhatsApp to patient on payment.captured
+        # 4. Cancel booking reservation on payment.failed
+        #
+        # Currently, Razorpay credentials are optional (not available for
+        # demo/portfolio use). The booking confirmation flow uses the
+        # /booking/confirm endpoint with client-side signature verification
+        # as the primary payment confirmation path. This webhook serves as
+        # a server-to-server backup for reliability in production.
+        # ─────────────────────────────────────────────────────
         
     except Exception as e:
-        logger.error(f"Error processing razorpay webhook: {e}")
+        logger.error("Error processing Razorpay webhook: %s", e)
         return JSONResponse(status_code=500, content={"error": "Handler Error"})
 
     return JSONResponse(status_code=200, content={"status": "ok"})

@@ -1,4 +1,4 @@
-import { ChevronDown, Clock, Leaf, Plus, Shapes, BellRing, Calendar, TrendingDown, Menu, ArrowRight, Check, Loader2, LayoutDashboard, Users, MessageSquare, Upload, Settings, BarChart3 } from 'lucide-react';
+import { ChevronDown, Clock, Leaf, Plus, Shapes, BellRing, Calendar, TrendingDown, Menu, ArrowRight, Check, Loader2, LayoutDashboard, Users, MessageSquare, Upload, Settings, BarChart3, Smartphone, CreditCard, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Hero45 } from '@/components/blocks/shadcnblocks-com-hero45';
 import { PricingSectionDemo } from '@/components/blocks/pricing-section-demo';
@@ -23,10 +23,10 @@ export default function Landing() {
         </div>
         
         <nav className="hidden md:flex items-center gap-8">
-          <a className="font-medium hover:text-primary transition-colors" href="#">How It Works</a>
-          <a className="font-medium hover:text-primary transition-colors" href="#">Features</a>
-          <a className="font-medium hover:text-primary transition-colors" href="#">Pricing</a>
-          <a className="font-medium hover:text-primary transition-colors" href="#">Contact</a>
+          <a className="font-medium hover:text-primary transition-colors" href="#how-it-works">How It Works</a>
+          <a className="font-medium hover:text-primary transition-colors" href="#features">Features</a>
+          <a className="font-medium hover:text-primary transition-colors" href="#pricing">Pricing</a>
+          <a className="font-medium hover:text-primary transition-colors" href="#faq">Contact</a>
         </nav>
 
         <div className="flex items-center gap-4">
@@ -46,7 +46,7 @@ export default function Landing() {
             Automate Patient Reminders<br />For Your Clinic
           </h1>
           <p className="text-lg md:text-xl text-black mb-10 max-w-2xl mx-auto">
-            Just send a WhatsApp photo of your daily register. Our AI handles everything.
+            Send a WhatsApp photo of your daily register. AI reminds your patients automatically — and patients can book their next slot right from the chat.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a className="w-full sm:w-auto px-8 py-3.5 bg-black text-white font-semibold rounded-full hover:bg-slate-800 transition-colors" href="/login">
@@ -111,8 +111,8 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Right Card - WhatsApp Action */}
-          <div className="absolute right-4 bottom-0 w-[400px] h-[440px] flex flex-col bg-[#09090B] text-white rounded-[32px] p-8 shadow-2xl transform rotate-[8deg] hover:rotate-4 transition-transform duration-300 z-30 border border-white/5 overflow-hidden">
+            {/* Right Card - WhatsApp Action */}
+            <div className="absolute right-4 bottom-0 w-[400px] h-[440px] flex flex-col bg-[#09090B] text-white rounded-[32px] p-8 shadow-2xl transform rotate-[8deg] hover:rotate-4 transition-transform duration-300 z-30 border border-white/5 overflow-hidden">
               {/* Abstract background curves */}
             <div className="absolute inset-0 opacity-40 pointer-events-none overflow-hidden rounded-[32px]">
               <svg className="absolute w-[200%] h-[200%] -top-[20%] -left-[50%] stroke-white/10 fill-none stroke-[6]" viewBox="0 0 200 200">
@@ -159,58 +159,31 @@ export default function Landing() {
       </div>
     </main>
 
-      {/* Logo Strip */}
+      {/* Stats Strip */}
       <section className="w-full border-t border-slate-200/50 py-8 relative z-10 bg-transparent">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-sm text-slate-500 mb-8 font-medium">
-            Trusted by thousands of Doctors worldwide
+            The problem is real. The market is massive.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-300">
-            
-            <div className="flex items-center gap-2 font-bold text-xl text-slate-800">
-              <span className="w-6 h-6 rounded bg-slate-800 inline-block relative overflow-hidden">
-                <span className="absolute inset-0 bg-gradient-to-tr from-slate-400 to-transparent opacity-50"></span>
-              </span>
-              innovio
+          <div className="flex flex-wrap items-center justify-center gap-12 md:gap-24">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-[#1E5F3A]">500K+</div>
+              <div className="text-sm text-slate-500 mt-1">Small clinic doctors in India</div>
             </div>
-            
-            <div className="flex items-center gap-2 font-bold text-xl text-slate-800">
-              <div className="flex gap-0.5 items-end h-6">
-                <div className="w-1.5 h-3 bg-rose-400 rounded-sm"></div>
-                <div className="w-1.5 h-6 bg-rose-500 rounded-sm"></div>
-                <div className="w-1.5 h-4 bg-rose-600 rounded-sm"></div>
-              </div>
-              Pulse
+            <div className="text-center">
+              <div className="text-4xl font-bold text-[#1E5F3A]">40%</div>
+              <div className="text-sm text-slate-500 mt-1">Patients forget follow-up visits</div>
             </div>
-            
-            <div className="flex items-center gap-2 font-bold text-xl text-slate-800">
-              Lum
-              <span className="w-5 h-5 bg-black rounded-sm inline-block relative mx-0.5">
-                <span className="absolute w-1.5 h-1.5 bg-white rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></span>
-              </span>
-              Labs
+            <div className="text-center">
+              <div className="text-4xl font-bold text-[#1E5F3A]">30sec</div>
+              <div className="text-sm text-slate-500 mt-1">Daily work for the doctor</div>
             </div>
-            
-            <div className="flex items-center gap-2 font-bold text-xl text-slate-800">
-              sparkle<span className="text-[10px] relative -top-2">TM</span>
-            </div>
-            
-            <div className="flex items-center gap-2 font-bold text-xl text-slate-800">
-              <Leaf className="w-6 h-6 text-emerald-500" />
-              innovio
-            </div>
-            
-            <div className="flex items-center gap-2 font-bold text-xl text-slate-800">
-              <Shapes className="w-6 h-6 text-cyan-500" />
-              Craftgram
-            </div>
-
           </div>
         </div>
       </section>
 
       {/* Problem Statement Section */}
-      <section className="w-full py-16 relative z-10 bg-[#F4FFF4]">
+      <section id="features" className="w-full py-16 relative z-10 bg-[#F4FFF4]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-10">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-black">
@@ -238,9 +211,9 @@ export default function Landing() {
               <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mb-6">
                 <TrendingDown className="w-6 h-6 text-amber-500" />
               </div>
-              <h3 className="text-xl font-semibold text-[#1E5F3A] mb-3">Staff time wasted calling</h3>
+              <h3 className="text-xl font-semibold text-[#1E5F3A] mb-3">Time wasted on manual calling</h3>
               <p className="text-slate-600 leading-relaxed">
-                Your receptionists spend 2-3 hours daily making manual calls. That's time they could spend helping patients in-clinic.
+                Your receptionists spend 2–3 hours daily making manual calls. That’s time they could spend helping patients in-clinic.
               </p>
             </div>
 
@@ -252,6 +225,39 @@ export default function Landing() {
               <h3 className="text-xl font-semibold text-[#1E5F3A] mb-3">Revenue loss from no-shows</h3>
               <p className="text-slate-600 leading-relaxed">
                 Every empty appointment slot is a loss. Reducing no-shows by even 20% can significantly boost your monthly profit.
+              </p>
+            </div>
+
+            {/* Card 4 */}
+            <div className="bg-white rounded-2xl p-8 border border-green-100 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-6">
+                <Smartphone className="w-6 h-6 text-blue-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-[#1E5F3A] mb-3">WhatsApp self-booking</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Patients book their next visit directly from the reminder chat. No app download, no login — just tap, pick a slot, and pay.
+              </p>
+            </div>
+
+            {/* Card 5 */}
+            <div className="bg-white rounded-2xl p-8 border border-green-100 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center mb-6">
+                <CreditCard className="w-6 h-6 text-purple-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-[#1E5F3A] mb-3">Razorpay payment built-in</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Online patients pay upfront via Razorpay and get a PDF bill instantly. No cash collection hassle at the clinic.
+              </p>
+            </div>
+
+            {/* Card 6 */}
+            <div className="bg-white rounded-2xl p-8 border border-green-100 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-6">
+                <FileText className="w-6 h-6 text-emerald-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-[#1E5F3A] mb-3">Midnight patient list PDF</h3>
+              <p className="text-slate-600 leading-relaxed">
+                At 12 AM, doctor receives an auto-generated PDF with tomorrow’s full patient schedule — online first, walk-in slots marked.
               </p>
             </div>
           </div>
@@ -296,30 +302,104 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* How it works section */}
-      <Hero45 
-        badge="How it works"
-        heading="3 Simple Steps to Automate Reminders"
-        imageSrc="https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=2070&auto=format&fit=crop"
-        imageAlt="Doctor scanning notepad"
-        features={[
-          {
-            icon: <Upload className="h-auto w-6" />,
-            title: "1. Scan Notepad",
-            description: "Simply take a photo of your daily patient notepad and send it to our WhatsApp bot.",
-          },
-          {
-            icon: <BarChart3 className="h-auto w-6" />,
-            title: "2. AI Analysis",
-            description: "Our AI instantly extracts patient names, numbers, and appointment details securely.",
-          },
-          {
-            icon: <MessageSquare className="h-auto w-6" />,
-            title: "3. Automated Reminders",
-            description: "Patients receive timely, personalized WhatsApp reminders from your clinic's number.",
-          }
-        ]}
-      />
+      {/* How it works — 6 steps */}
+      <section id="how-it-works" className="w-full py-16 md:py-24 relative z-10 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="inline-block bg-slate-100 text-slate-900 text-xs font-medium px-4 py-1.5 rounded-full mb-6 border border-slate-200">How it works</span>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4 text-black">
+              6 Steps. Zero Manual Work.
+            </h2>
+            <p className="text-lg text-slate-500 leading-relaxed">
+              From scanning your notepad to delivering a midnight patient list — everything runs on autopilot.
+            </p>
+          </div>
+
+          {/* Hero Image */}
+          <div className="relative w-full aspect-[16/7] rounded-[24px] overflow-hidden mb-14 shadow-lg">
+            <img 
+              src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=2070&auto=format&fit=crop" 
+              alt="Doctor scanning notepad" 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Step 1 */}
+            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mb-6">
+                <Upload className="w-6 h-6 text-green-600" />
+              </div>
+              <div className="text-xs font-bold text-[#16a34a] mb-2 tracking-wider uppercase">Step 1</div>
+              <h3 className="text-xl font-semibold text-black mb-3">Scan Your Notepad</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Take a photo of your daily patient register and send it to our WhatsApp bot. Works with handwritten notes too.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-6">
+                <BarChart3 className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="text-xs font-bold text-[#16a34a] mb-2 tracking-wider uppercase">Step 2</div>
+              <h3 className="text-xl font-semibold text-black mb-3">AI Extracts Details</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Our AI instantly extracts patient names, phone numbers, and appointment details — securely and accurately.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-6">
+                <MessageSquare className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="text-xs font-bold text-[#16a34a] mb-2 tracking-wider uppercase">Step 3</div>
+              <h3 className="text-xl font-semibold text-black mb-3">Automated Reminders</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Patients receive timely, personalized WhatsApp reminders from your clinic's number. No manual calling needed.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center mb-6">
+                <Smartphone className="w-6 h-6 text-purple-600" />
+              </div>
+              <div className="text-xs font-bold text-[#16a34a] mb-2 tracking-wider uppercase">Step 4</div>
+              <h3 className="text-xl font-semibold text-black mb-3">Patient Self-Books</h3>
+              <p className="text-slate-600 leading-relaxed">
+                From the same reminder chat, patients tap to book their next slot and pay via Razorpay. No app download needed.
+              </p>
+            </div>
+
+            {/* Step 5 */}
+            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mb-6">
+                <Users className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="text-xs font-bold text-[#16a34a] mb-2 tracking-wider uppercase">Step 5</div>
+              <h3 className="text-xl font-semibold text-black mb-3">Priority Queue Built</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Online-booked patients are automatically placed first in queue. Walk-in slots are reserved separately for the rest.
+              </p>
+            </div>
+
+            {/* Step 6 */}
+            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mb-6">
+                <FileText className="w-6 h-6 text-slate-700" />
+              </div>
+              <div className="text-xs font-bold text-[#16a34a] mb-2 tracking-wider uppercase">Step 6</div>
+              <h3 className="text-xl font-semibold text-black mb-3">Midnight PDF Delivered</h3>
+              <p className="text-slate-600 leading-relaxed">
+                At 12 AM, doctor receives a ready-made patient list on WhatsApp — organized by priority. Hand it to your receptionist.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Two-Panel Cards Section */}
       <section className="w-full py-16 relative z-10 bg-[#f0fff0]">
@@ -452,7 +532,7 @@ export default function Landing() {
             <div className="flex-1 w-full bg-[#f0fff0] rounded-[24px] p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col relative overflow-hidden text-[#1E5F3A] h-auto md:h-[760px]">
               <div className="flex justify-between items-start mb-8">
                 <span className="bg-white text-[#1E5F3A] text-[11px] font-bold px-3 py-1.5 rounded-full tracking-wider uppercase shadow-sm">
-                  YOUR AI ASSISTANT
+                  APPOINTMENT BOOKING
                 </span>
                 <button className="w-10 h-10 bg-[#1E5F3A] rounded-full flex items-center justify-center hover:bg-[#15472B] transition-colors shrink-0">
                   <ArrowRight className="w-5 h-5 text-white" />
@@ -460,7 +540,7 @@ export default function Landing() {
               </div>
               
               <h3 className="text-[32px] font-bold mt-2 mb-8 leading-[1.2] pr-4">
-                Ask your AI assistant anything about your clinic
+                Patient books. You get a PDF. Receptionist handles the rest.
               </h3>
               
               <div className="w-full h-px bg-slate-200 mb-8"></div>
@@ -470,19 +550,19 @@ export default function Landing() {
                   <div className="mt-1 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                     <Check className="w-3.5 h-3.5 text-green-700 stroke-[3]" />
                   </div>
-                  <span className="text-[15px] text-slate-700 leading-snug font-medium">Ask how many reminders were sent this month</span>
+                  <span className="text-[15px] text-slate-700 leading-snug font-medium">Patient books from WhatsApp reminder — no app, no login needed</span>
                 </li>
                 <li className="flex items-start gap-4">
                   <div className="mt-1 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                     <Check className="w-3.5 h-3.5 text-green-700 stroke-[3]" />
                   </div>
-                  <span className="text-[15px] text-slate-700 leading-snug font-medium">Get instant patient confirmation rates</span>
+                  <span className="text-[15px] text-slate-700 leading-snug font-medium">Online patients get priority queue over walk-ins automatically</span>
                 </li>
                 <li className="flex items-start gap-4">
                   <div className="mt-1 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                     <Check className="w-3.5 h-3.5 text-green-700 stroke-[3]" />
                   </div>
-                  <span className="text-[15px] text-slate-700 leading-snug font-medium">Know which patients need a follow-up today</span>
+                  <span className="text-[15px] text-slate-700 leading-snug font-medium">Midnight PDF sent to doctor — organized list for next day</span>
                 </li>
               </ul>
               
@@ -497,27 +577,25 @@ export default function Landing() {
                         <BellRing className="w-4 h-4 text-green-600" />
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-slate-800">CareRemind AI</div>
+                        <div className="text-xs font-bold text-slate-800">CareRemind</div>
                         <div className="text-[9px] text-green-500">Online</div>
                       </div>
                     </div>
                     {/* Chat Area */}
                     <div className="p-3 flex flex-col gap-3 overflow-y-auto text-[10px] flex-1 pb-6">
                       <div className="bg-[#1E5F3A] text-white p-2.5 rounded-xl rounded-tr-sm max-w-[85%] shadow-sm self-end">
-                        How many reminders did I send this month?
+                        📋 Reminder: Your follow-up with Dr. Abhishek is tomorrow at 10:30 AM. Tap below to book.
                       </div>
                       <div className="bg-white border border-slate-100 p-2.5 rounded-xl rounded-tl-sm max-w-[85%] shadow-sm self-start text-slate-800">
-                        This month you sent 312 reminders.<br/>
-                        248 patients confirmed ✅<br/>
-                        18 failed ❌<br/>
-                        46 still pending ⏳
+                        Your slot for 10:30 AM is confirmed ✅<br/>
+                        Payment received ₹200
                       </div>
                       <div className="bg-[#1E5F3A] text-white p-2.5 rounded-xl rounded-tr-sm max-w-[85%] shadow-sm self-end">
-                        Who needs follow-up today?
+                        How many booked tomorrow?
                       </div>
                       <div className="bg-white border border-slate-100 p-2.5 rounded-xl rounded-tl-sm max-w-[85%] shadow-sm self-start text-slate-800">
-                        3 patients have not confirmed yet:<br/>
-                        Ram Sharma, Priya Das, Mohan Roy
+                        12 online bookings confirmed.<br/>
+                        5 walk-in slots remaining.
                       </div>
                     </div>
                   </div>
@@ -529,10 +607,14 @@ export default function Landing() {
       </section>
 
       {/* Pricing Section */}
-      <PricingSectionDemo />
+      <div id="pricing">
+        <PricingSectionDemo />
+      </div>
 
       {/* QnA Section */}
-      <QnASection />
+      <div id="faq">
+        <QnASection />
+      </div>
 
       {/* Footer Section */}
       <FooterDemo />

@@ -25,6 +25,7 @@ async def get_specialties():
 
 
 from fastapi import Request, HTTPException
+from fastapi.responses import RedirectResponse
 from fastapi_sso.sso.google import GoogleSSO
 from fastapi_sso.sso.facebook import FacebookSSO
 from app.core.config import settings
@@ -33,14 +34,14 @@ google_sso = GoogleSSO(
     client_id=settings.GOOGLE_CLIENT_ID,
     client_secret=settings.GOOGLE_CLIENT_SECRET,
     redirect_uri=f"{settings.API_BASE_URL}/api/v1/auth/callback/google",
-    allow_insecure_http=True,
+    allow_insecure_http=not settings.is_production,
 )
 
 facebook_sso = FacebookSSO(
     client_id=settings.FACEBOOK_CLIENT_ID,
     client_secret=settings.FACEBOOK_CLIENT_SECRET,
     redirect_uri=f"{settings.API_BASE_URL}/api/v1/auth/callback/facebook",
-    allow_insecure_http=True,
+    allow_insecure_http=not settings.is_production,
 )
 
 @router.get("/login/google")
@@ -49,19 +50,32 @@ async def google_login():
     with google_sso:
         return await google_sso.get_login_redirect()
 
-@router.get("/callback/google", response_model=TokenResponse)
+@router.get("/callback/google")
 async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
-    """Handles Google Auth callback and returns JWT"""
-    with google_sso:
-        openid = await google_sso.verify_and_process(request)
-    
-    if not openid or not openid.email:
-        raise HTTPException(
-            status_code=400,
-            detail="Email not provided by OAuth provider"
+    """Handles Google Auth callback — redirects to frontend with JWT token."""
+    try:
+        with google_sso:
+            openid = await google_sso.verify_and_process(request)
+        
+        if not openid or not openid.email:
+            return RedirectResponse(
+                url=f"{settings.FRONTEND_URL}/login?error=Email+not+provided+by+Google"
+            )
+        
+        result = await auth_service.authenticate_sso(openid, db)
+        # Redirect to frontend with token in URL — frontend will extract and store it
+        return RedirectResponse(
+            url=(
+                f"{settings.FRONTEND_URL}/login"
+                f"?token={result.access_token}"
+                f"&tenant_id={result.tenant_id}"
+                f"&doctor_name={result.doctor_name}"
+            )
         )
-    
-    return await auth_service.authenticate_sso(openid, db)
+    except Exception as e:
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/login?error=OAuth+failed"
+        )
 
 
 @router.get("/login/facebook")
@@ -70,19 +84,31 @@ async def facebook_login():
     with facebook_sso:
         return await facebook_sso.get_login_redirect()
 
-@router.get("/callback/facebook", response_model=TokenResponse)
+@router.get("/callback/facebook")
 async def facebook_callback(request: Request, db: AsyncSession = Depends(get_db)):
-    """Handles Facebook Auth callback and returns JWT"""
-    with facebook_sso:
-        openid = await facebook_sso.verify_and_process(request)
-    
-    if not openid or not openid.email:
-        raise HTTPException(
-            status_code=400,
-            detail="Email not provided by OAuth provider"
+    """Handles Facebook Auth callback — redirects to frontend with JWT token."""
+    try:
+        with facebook_sso:
+            openid = await facebook_sso.verify_and_process(request)
+        
+        if not openid or not openid.email:
+            return RedirectResponse(
+                url=f"{settings.FRONTEND_URL}/login?error=Email+not+provided+by+Facebook"
+            )
+        
+        result = await auth_service.authenticate_sso(openid, db)
+        return RedirectResponse(
+            url=(
+                f"{settings.FRONTEND_URL}/login"
+                f"?token={result.access_token}"
+                f"&tenant_id={result.tenant_id}"
+                f"&doctor_name={result.doctor_name}"
+            )
         )
-    
-    return await auth_service.authenticate_sso(openid, db)
+    except Exception as e:
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/login?error=OAuth+failed"
+        )
 
 
 @router.post("/register", response_model=TenantResponse)

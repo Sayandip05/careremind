@@ -7,11 +7,11 @@ export function QnASection() {
   const faqs = [
     {
       question: "How exactly does CareRemind help me?",
-      answer: "CareRemind automates your patient follow-ups. You simply send a WhatsApp photo of your daily register, and our AI extracts the details to send automated, personalized WhatsApp reminders to your patients, saving your staff hours of manual calling."
+      answer: "CareRemind automates your patient follow-ups. You simply send a WhatsApp photo of your daily register, and our AI extracts the details to send automated, personalized WhatsApp reminders to your patients, saving you hours of manual calling."
     },
     {
-      question: "Does CareRemind help employees with claims?",
-      answer: "CareRemind is focused on clinic-to-patient communication and appointment reminders. We do not currently handle insurance claims or employee benefits."
+      question: "Can patients book appointments through CareRemind?",
+      answer: "Yes! Patients receive a booking option inside the same WhatsApp reminder chat. They can select a slot, pay via Razorpay, and receive a PDF confirmation. Doctor gets an auto-generated patient list at midnight, organized by priority."
     },
     {
       question: "Why should I trust CareRemind with my patient's data?",

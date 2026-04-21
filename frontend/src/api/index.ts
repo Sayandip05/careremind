@@ -8,6 +8,5 @@ export { bookingApi } from './booking';
 export { clinicsApi } from './clinics';
 export { appointmentsApi } from './appointments';
 export { billingApi } from './billing';
-export { staffApi } from './staff';
 export { auditApi } from './audit';
 export { default as client } from './client';

@@ -8,7 +8,6 @@ import Reminders from '@/pages/Reminders';
 import Admin from '@/pages/Admin';
 import Settings from '@/pages/Settings';
 import Billing from '@/pages/Billing';
-import Staff from '@/pages/Staff';
 import Landing from '@/pages/Landing';
 import Onboarding from '@/pages/Onboarding';
 import NotFound from '@/pages/NotFound';
@@ -35,7 +34,6 @@ export default function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/billing" element={<Billing />} />
-          <Route path="/staff" element={<Staff />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

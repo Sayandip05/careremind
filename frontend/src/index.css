@@ -2,19 +2,7 @@
 
 @theme {
   --color-primary: #16a34a;
-  --color-primary-dark: #1E5F3A;
   --color-background-light: #f0fdf4;
   --color-background-dark: #111821;
   --font-display: "Inter", sans-serif;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  min-height: 100vh;
 }

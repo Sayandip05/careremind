@@ -30,6 +30,7 @@ PUBLIC_PATHS = {
     "/api/v1/auth/callback/facebook",
     "/api/v1/webhooks/whatsapp",
     "/api/v1/webhooks/razorpay",
+    "/api/v1/contact",
 }
 
 PUBLIC_PATH_PREFIXES = {

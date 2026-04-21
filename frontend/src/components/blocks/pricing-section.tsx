@@ -138,7 +138,7 @@ function PricingSection({ tiers, className }: PricingSectionProps) {
                 <div className="mb-6">
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-bold text-slate-900">
-                      ${isYearly ? tier.price.yearly : tier.price.monthly}
+                      ₹{isYearly ? tier.price.yearly.toLocaleString('en-IN') : tier.price.monthly.toLocaleString('en-IN')}
                     </span>
                     <span className="text-sm text-slate-500">
                       /{isYearly ? "year" : "month"}

@@ -44,7 +44,6 @@ class Tenant(Base):
     appointments = relationship("Appointment", back_populates="tenant", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="tenant", cascade="all, delete-orphan")
     upload_logs = relationship("UploadLog", back_populates="tenant", cascade="all, delete-orphan")
-    staff = relationship("Staff", back_populates="tenant", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="tenant", cascade="all, delete-orphan")
     clinic_locations = relationship("ClinicLocation", back_populates="tenant", cascade="all, delete-orphan")
     bookings = relationship("Booking", back_populates="tenant", cascade="all, delete-orphan")

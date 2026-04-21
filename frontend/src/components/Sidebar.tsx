@@ -7,7 +7,6 @@ const navItems = [
   { path: '/upload', label: 'Upload', icon: Upload },
   { path: '/patients', label: 'Patients', icon: Users },
   { path: '/reminders', label: 'Reminders', icon: Bell },
-  { path: '/staff', label: 'Staff', icon: UsersRound },
   { path: '/billing', label: 'Billing', icon: CreditCard },
   { path: '/settings', label: 'Settings', icon: Settings },
   { path: '/admin', label: 'Admin', icon: Shield },

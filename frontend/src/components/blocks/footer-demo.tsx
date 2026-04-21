@@ -92,38 +92,9 @@ export function FooterDemo() {
               Icon: CreditCard,
               href: "#pricing",
             },
-            {
-              name: "Integrations",
-              Icon: Webhook,
-              href: "#integrations",
-            },
-            {
-              name: "API Documentation",
-              Icon: CodeXml,
-              href: "/docs/api",
-            },
           ],
         },
-        {
-          title: "Compare",
-          links: [
-            {
-              name: "Plausible",
-              Icon: PlausibleIcon,
-              href: "/compare/plausible",
-            },
-            {
-              name: "Matomo",
-              Icon: MatomoIcon,
-              href: "/compare/matomo",
-            },
-            {
-              name: "Google Analytics",
-              Icon: GoogleAnalyticsIcon,
-              href: "/compare/google-analytics",
-            },
-          ],
-        },
+
         {
           title: "Legal",
           links: [

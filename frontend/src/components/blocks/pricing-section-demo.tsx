@@ -7,8 +7,8 @@ const defaultTiers = [
   {
     name: "Starter Clinic",
     price: {
-      monthly: 29,
-      yearly: 290,
+      monthly: 499,
+      yearly: 4999,
     },
     description: "Perfect for single-doctor clinics getting started with automation.",
     icon: (
@@ -43,8 +43,8 @@ const defaultTiers = [
   {
     name: "Professional",
     price: {
-      monthly: 79,
-      yearly: 790,
+      monthly: 2500,
+      yearly: 24999,
     },
     description: "Ideal for busy clinics wanting a professional brand presence.",
     highlight: true,

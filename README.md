@@ -23,11 +23,11 @@ Solo doctors running independent clinics in tier 2 and tier 3 Indian cities who:
 
 ## The Problem
 
-Most small Indian clinics have zero patient follow-up system. Staff manually calls patients or nobody follows up at all. This leads to:
+Most small Indian clinics have zero patient follow-up system. The doctor or receptionist manually calls patients or nobody follows up at all. This leads to:
 
 - Patients missing follow-up visits and never returning
 - Direct revenue loss for the doctor
-- Staff time wasted on manual calling
+- Time wasted on manual calling
 - No record of who was reminded and who was not
 
 CareRemind solves this with one WhatsApp photo per day.
@@ -221,7 +221,6 @@ graph TD
         API[FastAPI Backend]
         Worker[Celery Worker]
         Cron[APScheduler Jobs]
-        Admin[Django Admin]
     end
 
     %% Storage & Queue
@@ -243,7 +242,6 @@ graph TD
     Doc -->|Logs in, Uploads Data| Dash
     Land -->|Redirects to| Dash
     Dash <-->|REST API| API
-    Admin <-->|Direct DB Access| PG
 
     %% Connections - Core Logic
     API <-->|Reads/Writes| PG
@@ -287,7 +285,6 @@ careremind/
 │   │   │   ├── booking/           # V2 booking feature
 │   │   │   ├── clinics/           # Clinic locations
 │   │   │   ├── billing/           # Payments
-│   │   │   ├── staff/             # Staff management
 │   │   │   ├── audit/             # Audit logs
 │   │   │   ├── dashboard/         # Stats
 │   │   │   └── webhooks/          # WhatsApp bot (primary upload)
@@ -635,7 +632,7 @@ SENTRY_DSN=
 Push to any branch
         ↓
 ci.yml — Python linting (ruff), type checking (mypy),
-         pytest, Django tests, TypeScript check, Docker build test
+         pytest, TypeScript check, Docker build test
         ↓
 Push to develop branch
         ↓
@@ -660,7 +657,7 @@ make migrate    # Run database migrations
 make build      # Build all Docker images
 make logs       # Tail all service logs
 make shell      # Open FastAPI Python shell
-make admin      # Open Django admin shell
+make admin      # Open FastAPI admin shell
 make clean      # Stop and remove all containers
 ```
 
