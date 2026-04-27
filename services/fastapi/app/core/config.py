@@ -1,4 +1,11 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# Resolve .env from repo root (5 levels up from this file: app/core/config.py)
+# careremind/services/fastapi/app/core/config.py -> careremind/
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+_ENV_FILE = _REPO_ROOT / ".env"
 
 
 class Settings(BaseSettings):
@@ -102,7 +109,7 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {"env_file": str(_ENV_FILE), "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()

@@ -24,7 +24,7 @@ def upgrade():
         'bookings',
         ['clinic_location_id', 'booking_date', 'slot_time'],
         unique=True,
-        postgresql_where=sa.text("status IN ('reserved', 'confirmed')")
+        postgresql_where=sa.text("status IN ('RESERVED', 'CONFIRMED')")
     )
 
 

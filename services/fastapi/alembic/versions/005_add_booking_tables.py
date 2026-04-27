@@ -22,11 +22,11 @@ def upgrade() -> None:
     # Create bookings table
     op.create_table(
         'bookings',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('tenant_id', sa.String(), nullable=False),
-        sa.Column('patient_id', sa.String(), nullable=False),
-        sa.Column('appointment_id', sa.String(), nullable=True),
-        sa.Column('clinic_location_id', sa.String(), nullable=False),
+        sa.Column('id', postgresql.UUID(as_uuid=False), nullable=False),
+        sa.Column('tenant_id', postgresql.UUID(as_uuid=False), nullable=False),
+        sa.Column('patient_id', postgresql.UUID(as_uuid=False), nullable=False),
+        sa.Column('appointment_id', postgresql.UUID(as_uuid=False), nullable=True),
+        sa.Column('clinic_location_id', postgresql.UUID(as_uuid=False), nullable=False),
         sa.Column('booking_date', sa.Date(), nullable=False),
         sa.Column('slot_time', sa.Time(), nullable=False),
         sa.Column('serial_number', sa.Integer(), nullable=True),
@@ -48,20 +48,20 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     # Create indexes for bookings
     op.create_index('ix_bookings_tenant_id', 'bookings', ['tenant_id'], unique=False)
     op.create_index('ix_bookings_patient_id', 'bookings', ['patient_id'], unique=False)
     op.create_index('ix_bookings_clinic_location_id', 'bookings', ['clinic_location_id'], unique=False)
     op.create_index('ix_bookings_booking_date', 'bookings', ['booking_date'], unique=False)
     op.create_index('ix_bookings_status', 'bookings', ['status'], unique=False)
-    
+
     # Create daily_schedules table
     op.create_table(
         'daily_schedules',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('tenant_id', sa.String(), nullable=False),
-        sa.Column('clinic_location_id', sa.String(), nullable=False),
+        sa.Column('id', postgresql.UUID(as_uuid=False), nullable=False),
+        sa.Column('tenant_id', postgresql.UUID(as_uuid=False), nullable=False),
+        sa.Column('clinic_location_id', postgresql.UUID(as_uuid=False), nullable=False),
         sa.Column('schedule_date', sa.Date(), nullable=False),
         sa.Column('pdf_url', sa.String(), nullable=True),
         sa.Column('total_online_bookings', sa.Integer(), nullable=False, server_default='0'),
@@ -73,7 +73,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     # Create indexes for daily_schedules
     op.create_index('ix_daily_schedules_tenant_id', 'daily_schedules', ['tenant_id'], unique=False)
     op.create_index('ix_daily_schedules_clinic_location_id', 'daily_schedules', ['clinic_location_id'], unique=False)
@@ -81,22 +81,18 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Drop indexes
     op.drop_index('ix_daily_schedules_schedule_date', table_name='daily_schedules')
     op.drop_index('ix_daily_schedules_clinic_location_id', table_name='daily_schedules')
     op.drop_index('ix_daily_schedules_tenant_id', table_name='daily_schedules')
-    
+
     op.drop_index('ix_bookings_status', table_name='bookings')
     op.drop_index('ix_bookings_booking_date', table_name='bookings')
     op.drop_index('ix_bookings_clinic_location_id', table_name='bookings')
     op.drop_index('ix_bookings_patient_id', table_name='bookings')
     op.drop_index('ix_bookings_tenant_id', table_name='bookings')
-    
-    # Drop tables
+
     op.drop_table('daily_schedules')
     op.drop_table('bookings')
-    
-    # Drop enums
+
     op.execute('DROP TYPE IF EXISTS paymentstatus')
     op.execute('DROP TYPE IF EXISTS bookingstatus')
-

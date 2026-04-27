@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -20,7 +21,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Add patient_id to reminders table
-    op.add_column('reminders', sa.Column('patient_id', sa.String(), nullable=True))
+    op.add_column('reminders', sa.Column('patient_id', postgresql.UUID(as_uuid=False), nullable=True))
     op.create_index('ix_reminders_patient_id', 'reminders', ['patient_id'], unique=False)
     
     # Add retry_count to reminders table
