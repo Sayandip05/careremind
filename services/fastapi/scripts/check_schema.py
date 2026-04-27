@@ -1,8 +1,21 @@
 """Check if migration 001/002 columns already exist"""
 import asyncio
 import asyncpg
+import sys
+from pathlib import Path
 
-DB_URL = "postgresql://postgres.denpygmjfloijyinzanx:CareRemind2024SecureDB@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
+# Add services/fastapi/ to sys.path to resolve app imports
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR))
+
+from dotenv import load_dotenv
+env_path = BASE_DIR.parent.parent / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+
+from app.core.config import settings
+
+DB_URL = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
 
 async def check():
     conn = await asyncpg.connect(DB_URL, ssl="require")
