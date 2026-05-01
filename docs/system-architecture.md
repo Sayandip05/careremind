@@ -8,8 +8,9 @@
 
 ## Overview
 
-CareRemind is a **modular monolith** built with FastAPI, designed for Indian clinics to automate appointment reminders via WhatsApp and SMS.
+CareRemind is a **modular monolith** built with FastAPI, designed for **individual doctors in India** to automate appointment reminders via WhatsApp and SMS.
 
+**Primary User**: Individual doctors (who may have multiple clinic locations)  
 **Architecture Style**: Modular Monolith (Single codebase, multiple containers)
 
 ---
@@ -159,10 +160,11 @@ Frontend extracts token and stores it
 
 ---
 
-### Flow 2: Patient Data Upload (Excel)
+### Flow 2: Patient Data Upload (3 Options)
 
+**Option 1: Dashboard Upload (Excel)**
 ```
-Doctor uploads Excel file
+Doctor uploads Excel file via web dashboard
   ↓
 Frontend → POST /api/v1/upload/excel (multipart/form-data)
   ↓
@@ -175,6 +177,60 @@ Create UploadLog record (status=PROCESSING)
 Trigger Ingestion Graph (LangGraph):
   ├─ Route Node: Detect file type (excel)
   ├─ Extract Node: Parse Excel → list of patient rows
+  ├─ Dedup Node: Check phone_hash against DB
+  └─ Save Node: Insert new patients + appointments
+  ↓
+Trigger Scheduling Graph (LangGraph):
+  ├─ Resolve specialty timing rules
+  └─ Create Reminder records (status=PENDING, scheduled_at=9 AM)
+  ↓
+Update UploadLog (status=COMPLETED, stats)
+  ↓
+Return result to frontend
+```
+
+**Option 2: WhatsApp Upload (Photo/Excel)**
+```
+Doctor sends patient register photo/Excel to WhatsApp Business number
+  ↓
+POST /api/v1/webhooks/whatsapp (from Meta)
+  ↓
+FastAPI downloads media from Meta API
+  ↓
+Identify doctor by WhatsApp number (Tenant.whatsapp_number)
+  ↓
+Create UploadLog record (status=PROCESSING)
+  ↓
+Trigger Ingestion Graph (LangGraph):
+  ├─ Route Node: Detect file type (photo/excel)
+  ├─ Extract Node: OCR (GPT-4o Mini) or Parse Excel
+  ├─ Dedup Node: Check phone_hash against DB
+  └─ Save Node: Insert new patients + appointments
+  ↓
+Trigger Scheduling Graph (LangGraph):
+  ├─ Resolve specialty timing rules
+  └─ Create Reminder records (status=PENDING, scheduled_at=9 AM)
+  ↓
+Update UploadLog (status=COMPLETED, stats)
+  ↓
+Send WhatsApp reply with results (X patients added, Y duplicates)
+```
+
+**Option 3: Dashboard Upload (Photo)**
+```
+Doctor uploads photo via web dashboard
+  ↓
+Frontend → POST /api/v1/upload/photo (multipart/form-data)
+  ↓
+FastAPI validates file (max 20MB, image/* only)
+  ↓
+Save file to Supabase Storage
+  ↓
+Create UploadLog record (status=PROCESSING)
+  ↓
+Trigger Ingestion Graph (LangGraph):
+  ├─ Route Node: Detect file type (photo)
+  ├─ Extract Node: OCR with GPT-4o Mini vision
   ├─ Dedup Node: Check phone_hash against DB
   └─ Save Node: Insert new patients + appointments
   ↓
@@ -219,16 +275,16 @@ Log summary (X sent, Y failed)
 
 ---
 
-### Flow 4: Patient Booking (WhatsApp)
+### Flow 4: Patient Booking (Web Dashboard/Link)
 
 ```
-Patient receives reminder with "Book Next Visit" button
+Patient receives reminder with booking link (via WhatsApp/SMS)
   ↓
-Patient taps button → WhatsApp webhook
+Patient opens link in browser → Booking page
   ↓
-POST /api/v1/webhooks/whatsapp
+GET /api/v1/booking/clinics
   ↓
-FastAPI parses webhook payload
+FastAPI returns doctor's clinic locations
   ↓
 Patient selects clinic and date
   ↓
@@ -253,10 +309,12 @@ POST /api/v1/booking/confirm
   ↓
 Midnight: Assign serial numbers to confirmed bookings
   ↓
-Midnight: Generate daily schedule PDF
+Midnight: Generate daily schedule PDF (per clinic location)
   ↓
 Send PDF to doctor's WhatsApp
 ```
+
+**Note**: Booking is done via web interface (dashboard or link), not via WhatsApp button. Doctor can have multiple clinic locations (e.g., "Morning Clinic", "Evening Clinic").
 
 ---
 
@@ -372,9 +430,9 @@ def cleanup_expired_reminders():
 
 ### 1. WhatsApp (Meta Cloud API)
 
-**Purpose**: Primary reminder channel
+**Purpose**: Primary reminder channel + Doctor upload channel
 
-**Flow**:
+**Flow (Sending Reminders)**:
 ```
 FastAPI → POST https://graph.facebook.com/v21.0/{phone_id}/messages
 Headers:
@@ -395,12 +453,21 @@ Response:
 
 **Retry Logic**: 3 attempts with exponential backoff (2s, 4s, 8s)
 
-**Webhook** (Incoming Messages):
+**Webhook (Incoming Messages from Doctor)**:
 ```
 WhatsApp → POST /api/v1/webhooks/whatsapp
   - Opt-out keywords (STOP, unsubscribe) → mark patient as opted out
-  - Image uploads → trigger OCR pipeline
-  - Document uploads → trigger Excel pipeline
+  - Image uploads → trigger OCR pipeline (doctor sends patient register photos)
+  - Document uploads → trigger Excel pipeline (doctor sends Excel files)
+  - Unknown text → send help message
+
+Doctor sends photo/Excel → System processes → Replies with results
+```
+
+**Daily Schedule Delivery**:
+```
+Midnight job generates PDF schedule → Sends to doctor's WhatsApp
+Doctor receives PDF with all confirmed bookings for the day
 ```
 
 ---
@@ -651,6 +718,9 @@ External:
 
 CareRemind uses a **modular monolith architecture** for simplicity and performance:
 
+- **Doctor-centric workflow**: Individual doctors are the primary users, managing their own patients across multiple clinic locations
+- **3 upload options**: Dashboard (Excel/Photo) or WhatsApp (Photo/Excel) - doctor chooses what's convenient
+- **WhatsApp as primary channel**: Reminders sent to patients, schedules sent to doctors, uploads received from doctors
 - **Single codebase** (`services/fastapi/`) with clear module boundaries
 - **Two containers**: API server + Celery workers (same code, different entry points)
 - **Async throughout**: FastAPI, SQLAlchemy, httpx for high concurrency

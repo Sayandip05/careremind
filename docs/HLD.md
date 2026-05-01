@@ -21,15 +21,17 @@ Indian clinics struggle with patient no-shows and manual reminder management. Do
 ## 2. Who is the User & What Pain It Solves
 
 ### Primary User
-**Small to medium clinic doctors** in India (general practitioners, dentists, pediatricians, etc.)
+**Individual doctors** in India (general practitioners, dentists, pediatricians, etc.) who run their own clinics
 
 ### Pain Points Solved
 - ✅ **Automated reminders**: No more manual calls
 - ✅ **Multi-channel delivery**: WhatsApp (primary) + SMS (fallback)
 - ✅ **Intelligent scheduling**: Reminders sent at specialty-specific times
-- ✅ **Easy data upload**: Excel or photo (OCR) - no manual entry
-- ✅ **Online booking**: Patients book next visit via WhatsApp
-- ✅ **Daily schedules**: PDF with online bookings + walk-in slots
+- ✅ **Easy data upload**: Excel, photo (OCR), or WhatsApp - no manual entry
+- ✅ **WhatsApp-first**: Doctor can send patient register photos directly via WhatsApp
+- ✅ **Online booking**: Patients book appointments at doctor's clinic locations
+- ✅ **Daily schedules**: PDF with online bookings + walk-in slots sent to doctor's WhatsApp
+- ✅ **Multiple clinics**: Support for doctors with multiple clinic locations
 
 ---
 
@@ -231,11 +233,13 @@ CareRemind is an **AI-powered, multi-tenant SaaS platform** that:
 
 ## 5. Data Flow
 
-### Flow 1: Patient Data Upload
+### Flow 1: Patient Data Upload (3 Ways)
+
+**Option A: Dashboard Upload**
 ```
-Doctor uploads Excel/Photo
+Doctor uploads Excel/Photo via web dashboard
   ↓
-Upload API validates file
+POST /api/v1/upload/excel or /upload/photo
   ↓
 Ingestion Graph (LangGraph)
   ├─ Extract: Parse Excel or OCR photo
@@ -247,6 +251,33 @@ Scheduling Graph (LangGraph)
   └─ Create Reminder records (status=PENDING)
   ↓
 Dashboard updated with new patient count
+```
+
+**Option B: WhatsApp Upload (Doctor sends photo/Excel)**
+```
+Doctor sends patient register photo to WhatsApp Business number
+  ↓
+POST /api/v1/webhooks/whatsapp (Meta webhook)
+  ↓
+System identifies doctor by WhatsApp number
+  ↓
+Download media from Meta API
+  ↓
+Same Ingestion Graph pipeline as above
+  ↓
+Send confirmation message back to doctor's WhatsApp
+  ("✅ Image processed! 10 new patients, 2 duplicates")
+```
+
+**Option C: Patient Opt-out**
+```
+Patient sends "STOP" to WhatsApp
+  ↓
+POST /api/v1/webhooks/whatsapp
+  ↓
+Mark patient as opted out
+  ↓
+Cancel all pending reminders for that patient
 ```
 
 ### Flow 2: Reminder Sending (9 AM IST)
@@ -270,20 +301,30 @@ Update Reminder status (SENT/FAILED)
 11 AM: Retry failed reminders (max 2 attempts)
 ```
 
-### Flow 3: Patient Booking (WhatsApp)
+### Flow 3: Patient Booking (via Dashboard)
 ```
-Patient receives reminder with "Book Next Visit" button
+Patient receives reminder with booking link
   ↓
-Patient taps button → WhatsApp webhook
+Patient opens link → Booking page
   ↓
-Booking API:
-  ├─ GET /slots → Returns available time slots
-  ├─ POST /reserve → Creates RESERVED booking (10-min expiry)
-  │  └─ Creates Razorpay order
-  ├─ POST /confirm → Verifies payment signature
-  │  ├─ Updates booking to CONFIRMED
-  │  └─ Generates PDF bill
-  └─ Midnight: Assign serial numbers to confirmed bookings
+GET /api/v1/booking/clinics → Select doctor's clinic location
+  ↓
+GET /api/v1/booking/slots?clinic_id=X&date=Y → View available slots
+  ↓
+POST /api/v1/booking/reserve
+  ├─ Create booking (status=RESERVED, expires in 10 min)
+  ├─ Create Razorpay order
+  └─ Return payment details
+  ↓
+Patient completes payment on Razorpay
+  ↓
+POST /api/v1/booking/confirm
+  ├─ Verify payment signature (HMAC-SHA256)
+  ├─ Update booking to CONFIRMED
+  ├─ Generate PDF bill
+  └─ Send confirmation to patient
+  ↓
+Midnight: Assign serial numbers to confirmed bookings
   ↓
 Midnight: Generate daily schedule PDF (online bookings + walk-in slots)
   ↓
