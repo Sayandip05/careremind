@@ -14,8 +14,9 @@ async def test_register_tenant(client: AsyncClient, sample_tenant_data):
     assert response.status_code == 201
     data = response.json()
     assert "access_token" in data
-    assert "tenant" in data
-    assert data["tenant"]["email"] == sample_tenant_data["email"]
+    assert "tenant_id" in data
+    assert data["email"] == sample_tenant_data["email"]
+    assert data["doctor_name"] == sample_tenant_data["doctor_name"]
 
 
 @pytest.mark.asyncio
@@ -94,5 +95,5 @@ async def test_unauthorized_access(client: AsyncClient):
     """Test accessing protected endpoint without token."""
     response = await client.get("/api/v1/auth/me")
     
-    assert response.status_code == 403
+    assert response.status_code == 401
 

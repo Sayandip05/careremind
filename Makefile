@@ -1,24 +1,38 @@
-.PHONY: dev test migrate shell admin logs build clean
+.PHONY: dev dev-api dev-worker test migrate logs build clean
 
+# ── Development ───────────────────────────────────────────────
 dev:
-	docker-compose up
+	docker-compose up api worker
 
-test:
-	docker-compose exec fastapi pytest
-	docker-compose exec django python manage.py test
+dev-api:
+	docker-compose up api
 
+dev-worker:
+	docker-compose up worker
+
+# ── Database ──────────────────────────────────────────────────
 migrate:
-	docker-compose exec fastapi alembic upgrade head
-	docker-compose exec django python manage.py migrate
+	docker-compose exec api alembic upgrade head
 
-shell:
-	docker-compose exec fastapi python -c "from app.core.database import get_db; print('FastAPI shell')"
+migrate-local:
+	cd services/fastapi && venv/Scripts/alembic upgrade head
 
-admin:
-	docker-compose exec django python manage.py shell
+# ── Testing ───────────────────────────────────────────────────
+test:
+	docker-compose exec api pytest
 
+test-local:
+	cd services/fastapi && venv/Scripts/pytest
+
+# ── Operations ────────────────────────────────────────────────
 logs:
 	docker-compose logs -f
+
+logs-api:
+	docker-compose logs -f api
+
+logs-worker:
+	docker-compose logs -f worker
 
 build:
 	docker-compose build

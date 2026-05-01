@@ -22,7 +22,7 @@ async def test_get_available_slots(
     # Register and get token
     register_response = await client.post("/api/v1/auth/register", json=sample_tenant_data)
     token = register_response.json()["access_token"]
-    tenant_id = register_response.json()["tenant"]["id"]
+    tenant_id = register_response.json()["tenant_id"]
     
     # Create a clinic location first
     clinic_data = {

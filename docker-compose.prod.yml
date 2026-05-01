@@ -1,35 +1,20 @@
 version: '3.8'
 
 # ── CareRemind Production Compose ────────────────────────────
-# Database: Supabase (external — no postgres service here)
-# Target: ~800 concurrent doctors on a single server
-# Scale path: add more fastapi replicas + PgBouncer for 2000+ doctors
+# Database:       Supabase (external — no postgres service here)
+# Redis:          Upstash Redis (external) OR local redis:7-alpine
+# Frontend:       Deployed on Vercel (no container)
+# Target:         ~800 concurrent doctors on a single server
+#
+# All Python services build from ONE Dockerfile (services/fastapi).
+# Scale path: add more api replicas + PgBouncer for 2000+ doctors.
 
 services:
-  nginx:
-    build: ./infrastructure/nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ssl_certs:/etc/nginx/ssl:ro
-      - certbot_webroot:/var/www/certbot
-    depends_on:
-      fastapi:
-        condition: service_healthy
-      frontend:
-        condition: service_started
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-  fastapi:
+  api:
     build: ./services/fastapi
     restart: always
+    ports:
+      - "8000:8000"
     env_file:
       - .env
     environment:
@@ -49,8 +34,16 @@ services:
       start_period: 15s
 
   worker:
-    build: ./services/worker
+    build: ./services/fastapi  # Same image as api
     restart: always
+    command:
+      - "celery"
+      - "-A"
+      - "app.worker.celery_app"
+      - "worker"
+      - "--loglevel=info"
+      - "--concurrency=4"
+      - "--max-tasks-per-child=1000"
     env_file:
       - .env
     environment:
@@ -58,21 +51,9 @@ services:
     depends_on:
       - redis
     deploy:
-      replicas: 3  # 3 Celery workers for reminder delivery throughput
+      replicas: 2  # 2 Celery worker containers for reminder delivery throughput
 
-  scheduler:
-    build: ./services/scheduler
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - ENVIRONMENT=production
-    depends_on:
-      - redis
-
-  frontend:
-    build: ./frontend
-    restart: always
+  # Frontend deploys to Vercel — no container needed.
 
   redis:
     image: redis:7-alpine
@@ -88,7 +69,4 @@ services:
       retries: 5
 
 volumes:
-  ssl_certs:
-  certbot_webroot:
   redis_data:
-

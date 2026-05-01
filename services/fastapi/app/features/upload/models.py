@@ -26,7 +26,7 @@ class UploadLog(Base):
     total_rows = Column(Integer, nullable=False, default=0)
     duplicates_skipped = Column(Integer, nullable=False, default=0)
     failed_rows = Column(Integer, nullable=False, default=0)
-    status = Column(Enum(UploadStatus), nullable=False, default=UploadStatus.PROCESSING)
+    status = Column(Enum(UploadStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=UploadStatus.PROCESSING)
     storage_url = Column(String)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

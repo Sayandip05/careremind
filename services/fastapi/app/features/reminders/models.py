@@ -29,10 +29,10 @@ class Reminder(Base):
     patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True)
     appointment_id = Column(String, ForeignKey("appointments.id", ondelete="CASCADE"), nullable=False, index=True)
     reminder_number = Column(Integer, nullable=False, default=1)
-    status = Column(Enum(ReminderStatus), nullable=False, default=ReminderStatus.PENDING)
+    status = Column(Enum(ReminderStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=ReminderStatus.PENDING)
     message_text = Column(Text)
     language_used = Column(String)
-    channel = Column(Enum(ChannelType))
+    channel = Column(String)  # 'whatsapp' or 'sms'
     scheduled_at = Column(DateTime(timezone=True), nullable=False)
     sent_at = Column(DateTime(timezone=True))
     error_log = Column(Text)

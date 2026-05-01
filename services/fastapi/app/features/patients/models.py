@@ -21,7 +21,7 @@ class Patient(Base):
     name = Column(String, nullable=False)
     phone_encrypted = Column(String, nullable=False)
     phone_hash = Column(String, nullable=False, index=True)  # Deterministic hash for dedup
-    preferred_channel = Column(Enum(PreferredChannel), nullable=False, default=PreferredChannel.WHATSAPP)
+    preferred_channel = Column(Enum(PreferredChannel, values_callable=lambda x: [e.value for e in x]), nullable=False, default=PreferredChannel.WHATSAPP)
     has_whatsapp = Column(Boolean, default=False)
     language_preference = Column(String)
     is_optout = Column(Boolean, nullable=False, default=False)

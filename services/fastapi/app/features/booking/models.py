@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, Time, Date, UniqueConstraint, Index
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Time, Date, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -66,11 +66,11 @@ class Booking(Base):
     serial_number = Column(Integer)  # Assigned at midnight
     
     # Status
-    status = Column(Enum(BookingStatus), nullable=False, default=BookingStatus.RESERVED, index=True)
+    status = Column(String, nullable=False, default=BookingStatus.RESERVED.value, index=True)
     
     # Payment
     payment_id = Column(String)
-    payment_status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.PENDING)
+    payment_status = Column(String, nullable=False, default=PaymentStatus.PENDING.value)
     amount = Column(Numeric(10, 2), nullable=False, default=200.00)
     razorpay_order_id = Column(String)
     razorpay_payment_id = Column(String)

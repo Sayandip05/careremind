@@ -1,20 +1,17 @@
 version: '3.8'
 
-services:
-  nginx:
-    build: ./infrastructure/nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./infrastructure/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - fastapi
-      - frontend
-    restart: unless-stopped
+# ── CareRemind Dev Compose ────────────────────────────────────
+# All Python services build from the SAME image (services/fastapi).
+# This is the correct modular monolith layout:
+#   - api     → uvicorn with --reload (hot reload for development)
+#   - worker  → celery worker (consumes background tasks from Redis)
+#
+# Scheduler runs embedded inside the FastAPI lifespan (APScheduler).
+# No separate scheduler container needed.
 
-  fastapi:
+services:
+  api:
     build: ./services/fastapi
-    # Dev: override to single uvicorn for hot-reload support
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     ports:
       - "8000:8000"
@@ -32,32 +29,25 @@ services:
       - ./services/fastapi:/app
 
   worker:
-    build: ./services/worker
+    build: ./services/fastapi  # Same image as api — no separate Dockerfile needed
+    command:
+      - "celery"
+      - "-A"
+      - "app.worker.celery_app"
+      - "worker"
+      - "--loglevel=info"
+      - "--max-tasks-per-child=1000"  # Prevent memory leaks in long-running workers
     env_file:
       - .env
     depends_on:
-      - redis
-      - postgres
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     volumes:
-      - ./services/worker:/app
+      - ./services/fastapi:/app  # Same volume mount — shares code with api
 
-  scheduler:
-    build: ./services/scheduler
-    env_file:
-      - .env
-    depends_on:
-      - redis
-      - postgres
-    volumes:
-      - ./services/scheduler:/app
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+  # Frontend deploys to Vercel — no container needed.
 
   postgres:
     image: postgres:15
@@ -91,4 +81,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-

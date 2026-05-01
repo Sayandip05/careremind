@@ -8,6 +8,7 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.graphs.notification import notification_graph
+from app.core.langsmith import get_langsmith_metadata, get_langsmith_tags
 from app.features.reminders.models import Reminder
 
 logger = logging.getLogger("careremind.services.notification")
@@ -25,10 +26,21 @@ class NotificationService:
         Process a single pending reminder through the notification graph.
         Returns {"success": bool, "channel": str, "error": str}.
         """
-        result = await notification_graph.ainvoke({
-            "reminder": reminder,
-            "db": db,
-        })
+        result = await notification_graph.ainvoke(
+            {
+                "reminder": reminder,
+                "db": db,
+            },
+            config={
+                "metadata": get_langsmith_metadata(
+                    tenant_id=reminder.tenant_id,
+                    reminder_id=reminder.id,
+                    patient_id=reminder.patient_id,
+                    operation="notification",
+                ),
+                "tags": get_langsmith_tags("notification", "reminder"),
+            }
+        )
 
         return {
             "success": result.get("success", False),

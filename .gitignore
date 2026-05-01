@@ -80,5 +80,4 @@ services/fastapi/uploads/
 
 # ── Internal Planning (not for production) ───────────────────
 
-docs/
-extra_docs/
+memory.md

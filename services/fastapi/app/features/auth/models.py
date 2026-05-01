@@ -27,7 +27,7 @@ class Tenant(Base):
     whatsapp_number = Column(String)
     hashed_password = Column(String, nullable=False)
     email_marketing = Column(Boolean, nullable=False, default=True)
-    plan = Column(Enum(PlanType), nullable=False, default=PlanType.FREE)
+    plan = Column(Enum(PlanType, values_callable=lambda x: [e.value for e in x]), nullable=False, default=PlanType.FREE)
     trial_ends_at = Column(DateTime(timezone=True))
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

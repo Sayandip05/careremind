@@ -23,7 +23,7 @@ class Appointment(Base):
     next_visit_date = Column(Date)
     specialty_override = Column(String)
     notes_encrypted = Column(Text)
-    source = Column(Enum(UploadSource), nullable=False, default=UploadSource.MANUAL)
+    source = Column(Enum(UploadSource, values_callable=lambda x: [e.value for e in x]), nullable=False, default=UploadSource.MANUAL)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships

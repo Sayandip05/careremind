@@ -111,17 +111,32 @@ async def facebook_callback(request: Request, db: AsyncSession = Depends(get_db)
         )
 
 
-@router.post("/register", response_model=TenantResponse)
+from fastapi import status as http_status
+
+@router.post("/register", response_model=TokenResponse, status_code=http_status.HTTP_201_CREATED)
 async def register(
     data: TenantRegister,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Register a new doctor account.
+    Register a new doctor account and return JWT token.
     Consolidates functionality.
     """
     tenant = await auth_service.register_tenant(data, db)
-    return tenant
+    
+    # Generate token for immediate login
+    from app.core.security import create_access_token
+    token = create_access_token(tenant_id=tenant.id, email=tenant.email)
+    
+    return TokenResponse(
+        access_token=token,
+        tenant_id=tenant.id,
+        doctor_name=tenant.doctor_name,
+        clinic_name=tenant.clinic_name,
+        email=tenant.email,
+        specialty=tenant.specialty,
+        plan=tenant.plan.value if tenant.plan else "free",
+    )
 
 
 from fastapi.security import OAuth2PasswordRequestForm

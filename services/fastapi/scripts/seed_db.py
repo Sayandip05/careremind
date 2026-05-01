@@ -18,6 +18,7 @@ from sqlalchemy import select
 
 from app.core.database import async_session
 from app.core.security import get_password_hash, encryption_service
+import app.models  # Import all models to ensure relationships are resolved
 from app.features.auth.models import Tenant, PlanType
 from app.features.patients.models import Patient, PreferredChannel
 from app.features.appointments.models import Appointment, UploadSource
