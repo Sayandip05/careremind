@@ -92,6 +92,12 @@ class Settings(BaseSettings):
     # ── Monitoring ───────────────────────────────────────────
     ENABLE_SENTRY: bool = False
     SENTRY_DSN: str = ""
+    
+    # ── LangSmith (Agent Tracing & Monitoring) ───────────────
+    ENABLE_LANGSMITH: bool = False
+    LANGSMITH_API_KEY: str = ""
+    LANGSMITH_PROJECT: str = "careremind-agents"
+    LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
 
     # ── Background Workers ───────────────────────────────────
     ENABLE_CELERY: bool = False  # Set to True if using Celery workers
@@ -99,6 +105,12 @@ class Settings(BaseSettings):
     # ── Database Pool ────────────────────────────────────────
     DB_POOL_SIZE: int = 5
     DB_MAX_OVERFLOW: int = 10
+
+    # ── HTTP Client Timeouts (seconds) ───────────────────────
+    HTTP_TIMEOUT_DEFAULT: int = 30
+    HTTP_TIMEOUT_LONG: int = 90  # For AI/OCR requests
+    HTTP_MAX_CONNECTIONS: int = 100
+    HTTP_MAX_KEEPALIVE: int = 20
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -81,11 +81,25 @@ async def save_to_db_node(state: IngestionState) -> dict:
             if appointment:
                 await db.flush()  # Ensure appointment has an ID
                 try:
-                    sched_result = await scheduling_graph.ainvoke({
-                        "appointment": appointment,
-                        "tenant": tenant,
-                        "db": db,
-                    })
+                    from app.core.langsmith import get_langsmith_metadata, get_langsmith_tags
+                    
+                    sched_result = await scheduling_graph.ainvoke(
+                        {
+                            "appointment": appointment,
+                            "tenant": tenant,
+                            "db": db,
+                        },
+                        config={
+                            "metadata": get_langsmith_metadata(
+                                tenant_id=tenant_id,
+                                appointment_id=appointment.id,
+                                operation="scheduling",
+                                specialty=tenant.specialty,
+                                triggered_by="persistence_node",
+                            ),
+                            "tags": get_langsmith_tags("scheduling", tenant.specialty or "general", "auto"),
+                        }
+                    )
                     created = sched_result.get("created_reminders", [])
                     reminders_created += len(created)
                 except Exception as sched_e:

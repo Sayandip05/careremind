@@ -8,6 +8,7 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.graphs.scheduling import scheduling_graph
+from app.core.langsmith import get_langsmith_metadata, get_langsmith_tags
 from app.features.appointments.models import Appointment
 from app.features.auth.models import Tenant
 from app.features.reminders.models import Reminder
@@ -28,10 +29,21 @@ class ReminderAgent:
         Create Reminder records for an appointment via LangGraph.
         Returns list of created Reminder objects.
         """
-        result = await scheduling_graph.ainvoke({
-            "appointment": appointment,
-            "tenant": tenant,
-            "db": db,
-        })
+        result = await scheduling_graph.ainvoke(
+            {
+                "appointment": appointment,
+                "tenant": tenant,
+                "db": db,
+            },
+            config={
+                "metadata": get_langsmith_metadata(
+                    tenant_id=str(tenant.id),
+                    appointment_id=appointment.id,
+                    operation="scheduling",
+                    specialty=tenant.specialty,
+                ),
+                "tags": get_langsmith_tags("scheduling", tenant.specialty or "general"),
+            }
+        )
 
         return result.get("created_reminders", [])

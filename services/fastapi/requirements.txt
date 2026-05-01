@@ -32,6 +32,7 @@ sentry-sdk[fastapi]==1.40.0
 
 # ── HTTP Client ──────────────────────────────────────────────
 httpx==0.26.0
+tenacity==8.2.3
 
 # ── File Processing ──────────────────────────────────────────
 openpyxl==3.1.2
@@ -46,6 +47,7 @@ aiosmtplib>=3.0.1
 # ── AI Agent Framework ───────────────────────────────────────
 langgraph>=0.2.0
 langchain-core>=0.3.0
+langsmith>=0.1.0
 openai>=1.0.0
 
 # ── Testing ──────────────────────────────────────────────────

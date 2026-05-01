@@ -1,12 +1,19 @@
 """
 WhatsApp Service — Sends messages via Meta Cloud API.
-Production-grade with error handling and delivery status tracking.
+Production-grade with error handling, delivery status tracking, and automatic retry.
 """
 
 import logging
 from typing import Optional
 
 import httpx
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_sleep_log,
+)
 
 from app.core.config import settings
 
@@ -44,6 +51,24 @@ class WhatsAppService:
     def is_configured(self) -> bool:
         return bool(self.token and self._default_phone_number_id)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((httpx.TimeoutException, httpx.NetworkError)),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        reraise=True,
+    )
+    async def _send_request(self, url: str, payload: dict, headers: dict) -> httpx.Response:
+        """
+        Internal method to send HTTP request with retry logic.
+        Retries on timeout and network errors with exponential backoff.
+        """
+        if _http_client:
+            return await _http_client.post(url, json=payload, headers=headers)
+        else:
+            async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_DEFAULT) as client:
+                return await client.post(url, json=payload, headers=headers)
+
     async def send_message(self, to: str, message: str, phone_number_id: Optional[str] = None) -> dict:
         """
         Send a WhatsApp text message via Meta Cloud API.
@@ -72,10 +97,7 @@ class WhatsAppService:
         }
 
         try:
-            # Use shared HTTP client for connection pooling
-            client = _http_client or httpx.AsyncClient(timeout=30.0)
-            response = await client.post(url, json=payload, headers=headers)
-
+            response = await self._send_request(url, payload, headers)
             data = response.json()
 
             if response.status_code == 200:
@@ -88,8 +110,8 @@ class WhatsAppService:
                 return {"success": False, "error": error}
 
         except httpx.TimeoutException:
-            logger.error("WhatsApp timeout sending to ...%s", to[-4:])
-            return {"success": False, "error": "Request timeout"}
+            logger.error("WhatsApp timeout sending to ...%s (after retries)", to[-4:])
+            return {"success": False, "error": "Request timeout after retries"}
 
         except Exception as e:
             logger.error("WhatsApp unexpected error: %s", e)
@@ -151,10 +173,7 @@ class WhatsAppService:
         }
 
         try:
-            # Use shared HTTP client for connection pooling
-            client = _http_client or httpx.AsyncClient(timeout=30.0)
-            response = await client.post(url, json=payload, headers=headers)
-
+            response = await self._send_request(url, payload, headers)
             data = response.json()
 
             if response.status_code == 200:
@@ -167,8 +186,8 @@ class WhatsAppService:
                 return {"success": False, "error": error}
 
         except httpx.TimeoutException:
-            logger.error("WhatsApp timeout sending to ...%s", to[-4:])
-            return {"success": False, "error": "Request timeout"}
+            logger.error("WhatsApp timeout sending to ...%s (after retries)", to[-4:])
+            return {"success": False, "error": "Request timeout after retries"}
 
         except Exception as e:
             logger.error("WhatsApp unexpected error: %s", e)

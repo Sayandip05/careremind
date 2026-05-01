@@ -9,6 +9,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.graphs.ingestion import ingestion_graph
+from app.core.langsmith import get_langsmith_metadata, get_langsmith_tags
 
 logger = logging.getLogger("careremind.agents.orchestrator")
 
@@ -39,13 +40,23 @@ class Orchestrator:
                 "errors": [str, ...],
             }
         """
-        # Run the graph
-        result = await ingestion_graph.ainvoke({
-            "file_type": file_type,
-            "file_bytes": file_bytes,
-            "tenant_id": tenant_id,
-            "db": db,
-        })
+        # Run the graph with LangSmith tracing
+        result = await ingestion_graph.ainvoke(
+            {
+                "file_type": file_type,
+                "file_bytes": file_bytes,
+                "tenant_id": tenant_id,
+                "db": db,
+            },
+            config={
+                "metadata": get_langsmith_metadata(
+                    tenant_id=tenant_id,
+                    operation="ingestion",
+                    file_type=file_type,
+                ),
+                "tags": get_langsmith_tags("ingestion", file_type),
+            }
+        )
 
         # Collect all errors
         errors = list(result.get("extraction_errors", []))
