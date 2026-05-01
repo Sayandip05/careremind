@@ -29,17 +29,17 @@ def process_photo_upload(self, upload_id: str, tenant_id: str):
 
 async def _process_photo(upload_id: str, tenant_id: str):
     """Load image from upload_log, run OCR orchestrator pipeline."""
+    import httpx
+
     from app.agents.orchestrator import Orchestrator
     from app.core.database import async_session
-    from app.models.upload_log import UploadLog, UploadStatus
+    from app.features.upload.models import UploadLog, UploadStatus
 
     async with async_session() as db:
         upload_log = await db.get(UploadLog, upload_id)
         if not upload_log:
             return {"success": False, "error": "Upload not found"}
 
-        # Load image from storage URL
-        import httpx
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(upload_log.storage_url)
             if response.status_code != 200:
@@ -48,7 +48,6 @@ async def _process_photo(upload_id: str, tenant_id: str):
                 return {"success": False, "error": "Could not download image"}
             file_bytes = response.content
 
-        # Run OCR pipeline
         orchestrator = Orchestrator()
         try:
             result = await orchestrator.process("photo", file_bytes, tenant_id, db)

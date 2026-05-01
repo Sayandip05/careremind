@@ -30,6 +30,8 @@ def process_excel_upload(self, upload_id: str, tenant_id: str):
 
 async def _process_excel(upload_id: str, tenant_id: str):
     """Load file from upload_log, run orchestrator pipeline."""
+    import httpx
+
     from app.agents.orchestrator import Orchestrator
     from app.core.database import async_session
     from app.features.upload.models import UploadLog, UploadStatus
@@ -39,8 +41,6 @@ async def _process_excel(upload_id: str, tenant_id: str):
         if not upload_log:
             return {"success": False, "error": "Upload not found"}
 
-        # Load file from storage URL
-        import httpx
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(upload_log.storage_url)
             if response.status_code != 200:
@@ -49,7 +49,6 @@ async def _process_excel(upload_id: str, tenant_id: str):
                 return {"success": False, "error": "Could not download file"}
             file_bytes = response.content
 
-        # Run pipeline
         orchestrator = Orchestrator()
         try:
             result = await orchestrator.process("excel", file_bytes, tenant_id, db)

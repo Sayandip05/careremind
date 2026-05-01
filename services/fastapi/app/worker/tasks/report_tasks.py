@@ -52,12 +52,14 @@ async def _generate_for_all():
 
 async def _generate_for_tenant(tenant_id: str):
     """Build and send daily summary for one tenant."""
-    from app.core.database import async_session
-    from app.features.reminders.models import Reminder, ReminderStatus
-    from app.features.auth.models import Tenant
-    from app.core.integrations.whatsapp_service import whatsapp_service
-    from sqlalchemy import func, select, and_
     from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import func, select
+
+    from app.core.database import async_session
+    from app.core.integrations.whatsapp_service import whatsapp_service
+    from app.features.auth.models import Tenant
+    from app.features.reminders.models import Reminder, ReminderStatus
 
     async with async_session() as db:
         tenant = await db.get(Tenant, tenant_id)
@@ -66,7 +68,6 @@ async def _generate_for_tenant(tenant_id: str):
 
         today = date.today()
 
-        # Count reminders by status for today
         counts = {}
         for status in ReminderStatus:
             result = await db.execute(
@@ -78,7 +79,6 @@ async def _generate_for_tenant(tenant_id: str):
             )
             counts[status.value] = result.scalar() or 0
 
-        # Build summary message
         message = (
             f"📊 Daily Summary — {today.strftime('%d/%m/%Y')}\n\n"
             f"Dr. {tenant.doctor_name}, here's your reminder report:\n\n"
@@ -89,7 +89,6 @@ async def _generate_for_tenant(tenant_id: str):
             f"Total reminders today: {sum(counts.values())}"
         )
 
-        # Send to doctor's WhatsApp
         doctor_phone = tenant.whatsapp_number or tenant.phone
         if doctor_phone and whatsapp_service.is_configured:
             await whatsapp_service.send_message(doctor_phone, message)

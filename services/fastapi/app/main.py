@@ -46,6 +46,12 @@ if settings.ENABLE_SENTRY and settings.SENTRY_DSN:
     )
     logger.info("Sentry monitoring enabled")
 
+# ── LangSmith Initialization ─────────────────────────────────
+from app.core.langsmith import initialize_langsmith
+
+if initialize_langsmith():
+    logger.info("LangSmith agent tracing enabled")
+
 # ── Logging ──────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO if settings.is_production else logging.DEBUG,
@@ -73,10 +79,10 @@ async def lifespan(app: FastAPI):
     
     # Create shared HTTP client for connection pooling
     app.state.http_client = httpx.AsyncClient(
-        timeout=30.0,
+        timeout=settings.HTTP_TIMEOUT_DEFAULT,
         limits=httpx.Limits(
-            max_connections=100,
-            max_keepalive_connections=20
+            max_connections=settings.HTTP_MAX_CONNECTIONS,
+            max_keepalive_connections=settings.HTTP_MAX_KEEPALIVE
         )
     )
     logger.info("HTTP client initialized with connection pooling")
@@ -85,10 +91,14 @@ async def lifespan(app: FastAPI):
     from app.core.integrations.whatsapp_service import set_http_client as set_whatsapp_client
     from app.core.integrations.sms_service import set_http_client as set_sms_client
     from app.core.integrations.razorpay_service import set_http_client as set_razorpay_client
+    from app.core.integrations.openai_service import set_http_client as set_openai_client
+    from app.core.integrations.nvidia_service import set_http_client as set_nvidia_client
     
     set_whatsapp_client(app.state.http_client)
     set_sms_client(app.state.http_client)
     set_razorpay_client(app.state.http_client)
+    set_openai_client(app.state.http_client)
+    set_nvidia_client(app.state.http_client)
     logger.info("HTTP client injected into all services")
     
     # Start scheduler for background jobs

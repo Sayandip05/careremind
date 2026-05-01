@@ -209,33 +209,113 @@ async def generate_daily_schedules_job():
 async def cleanup_expired_reservations_job():
     """
     Periodic job (every 5 minutes) — Cancel expired reservations.
-    
+
     Uses distributed locking to prevent duplicate execution.
-    
+
     Finds all bookings with status=RESERVED and expires_at < now,
     then updates status to EXPIRED.
     """
     async with distributed_lock("cleanup_expired_reservations", timeout=120) as acquired:
         if not acquired:
             return  # Another instance is already running this job
-        
+
         logger.info("Starting expired reservation cleanup job")
-    
+
     async with async_session() as db:
         try:
             cancelled_count = await BookingService.cleanup_expired_reservations(db)
             await db.commit()
-            
+
             if cancelled_count > 0:
                 logger.info("Cleaned up %d expired reservations", cancelled_count)
-            
+
         except Exception as e:
             logger.error("Expired reservation cleanup failed: %s", e, exc_info=True)
             await db.rollback()
 
 
-# Scheduler configuration (to be used with APScheduler)
+# ── Celery Task Dispatch Jobs ────────────────────────────────
+# These are thin wrappers that enqueue work onto the Celery queue.
+# The actual task logic lives in app/worker/tasks/.
+# Using send_task() by name so the scheduler does not need to import
+# the celery_app at module load time (avoids circular deps).
+
+async def dispatch_send_pending_reminders():
+    """
+    9:00 AM IST — Dispatch send_pending_reminders to Celery workers.
+    """
+    try:
+        from app.worker.celery_app import celery_app
+
+        result = celery_app.send_task(
+            "app.worker.tasks.reminder_tasks.send_pending_reminders"
+        )
+        logger.info("Dispatched send_pending_reminders — task id: %s", result.id)
+    except Exception as e:
+        logger.error("Failed to dispatch send_pending_reminders: %s", e, exc_info=True)
+
+
+async def dispatch_generate_daily_summary():
+    """
+    9:30 AM IST — Dispatch generate_daily_summary to Celery workers.
+    """
+    try:
+        from app.worker.celery_app import celery_app
+
+        result = celery_app.send_task(
+            "app.worker.tasks.report_tasks.generate_daily_summary"
+        )
+        logger.info("Dispatched generate_daily_summary — task id: %s", result.id)
+    except Exception as e:
+        logger.error(
+            "Failed to dispatch generate_daily_summary: %s", e, exc_info=True
+        )
+
+
+async def dispatch_retry_failed_reminders():
+    """
+    11:00 AM IST — Dispatch retry_failed_reminders to Celery workers.
+    """
+    try:
+        from app.worker.celery_app import celery_app
+
+        result = celery_app.send_task(
+            "app.worker.tasks.reminder_tasks.retry_failed_reminders"
+        )
+        logger.info(
+            "Dispatched retry_failed_reminders — task id: %s", result.id
+        )
+    except Exception as e:
+        logger.error(
+            "Failed to dispatch retry_failed_reminders: %s", e, exc_info=True
+        )
+
+
+async def dispatch_midnight_cleanup():
+    """
+    12:00 AM IST — Dispatch upload and reminder cleanup tasks to Celery workers.
+    Runs alongside the existing generate_daily_schedules_job (merged at midnight).
+    """
+    try:
+        from app.worker.celery_app import celery_app
+
+        r1 = celery_app.send_task(
+            "app.worker.tasks.cleanup_tasks.cleanup_old_uploads"
+        )
+        r2 = celery_app.send_task(
+            "app.worker.tasks.cleanup_tasks.cleanup_expired_reminders"
+        )
+        logger.info(
+            "Dispatched cleanup tasks — uploads: %s, reminders: %s",
+            r1.id, r2.id,
+        )
+    except Exception as e:
+        logger.error("Failed to dispatch cleanup tasks: %s", e, exc_info=True)
+
+
+# ── Scheduler Configuration ──────────────────────────────────
 SCHEDULED_JOBS = [
+    # ── Booking / Clinic ──────────────────────────────────────
     {
         "func": generate_daily_schedules_job,
         "trigger": "cron",
@@ -251,6 +331,43 @@ SCHEDULED_JOBS = [
         "minutes": 5,
         "id": "cleanup_expired_reservations",
         "name": "Cleanup Expired Reservations (Every 5 min)",
+        "replace_existing": True,
+    },
+    # ── Reminders (dispatched to Celery workers) ──────────────
+    {
+        "func": dispatch_send_pending_reminders,
+        "trigger": "cron",
+        "hour": 9,
+        "minute": 0,
+        "id": "dispatch_send_pending_reminders",
+        "name": "Dispatch Send Pending Reminders (9:00 AM IST)",
+        "replace_existing": True,
+    },
+    {
+        "func": dispatch_generate_daily_summary,
+        "trigger": "cron",
+        "hour": 9,
+        "minute": 30,
+        "id": "dispatch_generate_daily_summary",
+        "name": "Dispatch Generate Daily Summary (9:30 AM IST)",
+        "replace_existing": True,
+    },
+    {
+        "func": dispatch_retry_failed_reminders,
+        "trigger": "cron",
+        "hour": 11,
+        "minute": 0,
+        "id": "dispatch_retry_failed_reminders",
+        "name": "Dispatch Retry Failed Reminders (11:00 AM IST)",
+        "replace_existing": True,
+    },
+    {
+        "func": dispatch_midnight_cleanup,
+        "trigger": "cron",
+        "hour": 0,
+        "minute": 0,
+        "id": "dispatch_midnight_cleanup",
+        "name": "Dispatch Midnight Cleanup (12:00 AM IST)",
         "replace_existing": True,
     },
 ]
