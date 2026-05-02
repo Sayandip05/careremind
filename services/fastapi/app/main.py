@@ -31,6 +31,7 @@ from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.middleware.audit_logger import AuditLogger
 from app.middleware.input_sanitizer import SecurityHeadersMiddleware
 from app.middleware.error_handler import ErrorHandlerMiddleware
+from app.middleware.timeout import TimeoutMiddleware
 
 # ── Sentry Initialization ────────────────────────────────────
 if settings.ENABLE_SENTRY and settings.SENTRY_DSN:
@@ -186,6 +187,7 @@ app = FastAPI(
 # ── Middlewares ──────────────────────────────────────────────
 # Applied in reverse order of evaluation
 
+app.add_middleware(TimeoutMiddleware)  # Timeout protection (outermost)
 app.add_middleware(ErrorHandlerMiddleware)  # Catch all unhandled exceptions
 app.add_middleware(AuthMiddleware)
 app.add_middleware(TenantContextMiddleware)

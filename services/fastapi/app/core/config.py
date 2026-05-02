@@ -111,6 +111,11 @@ class Settings(BaseSettings):
     HTTP_TIMEOUT_LONG: int = 90  # For AI/OCR requests
     HTTP_MAX_CONNECTIONS: int = 100
     HTTP_MAX_KEEPALIVE: int = 20
+    
+    # ── Request Timeouts (seconds) ───────────────────────────
+    REQUEST_TIMEOUT_DEFAULT: int = 60   # Normal API requests
+    REQUEST_TIMEOUT_UPLOAD: int = 120   # File uploads (Excel/Photo)
+    REQUEST_TIMEOUT_HEALTH: int = 5     # Health checks
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -45,7 +45,7 @@ class StorageService:
             "x-upsert": "true",
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_DEFAULT) as client:
             response = await client.post(url, content=data, headers=headers)
 
             if response.status_code not in (200, 201):

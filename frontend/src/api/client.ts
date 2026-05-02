@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
+  timeout: 30000, // 30 seconds default timeout
 });
 
 client.interceptors.request.use((config) => {
@@ -9,6 +10,12 @@ client.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  // Increase timeout for upload endpoints
+  if (config.url?.includes('/upload')) {
+    config.timeout = 60000; // 60 seconds for file uploads
+  }
+  
   return config;
 });
 

@@ -34,6 +34,7 @@ async def _process_excel(upload_id: str, tenant_id: str):
 
     from app.agents.orchestrator import Orchestrator
     from app.core.database import async_session
+    from app.core.config import settings
     from app.features.upload.models import UploadLog, UploadStatus
 
     async with async_session() as db:
@@ -41,7 +42,7 @@ async def _process_excel(upload_id: str, tenant_id: str):
         if not upload_log:
             return {"success": False, "error": "Upload not found"}
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_DEFAULT) as client:
             response = await client.get(upload_log.storage_url)
             if response.status_code != 200:
                 upload_log.status = UploadStatus.FAILED

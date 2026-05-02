@@ -264,7 +264,7 @@ async def _download_media(media_id: str) -> bytes:
     url = f"https://graph.facebook.com/v21.0/{media_id}"
     headers = {"Authorization": f"Bearer {settings.META_WHATSAPP_TOKEN}"}
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_DEFAULT) as client:
         response = await client.get(url, headers=headers)
         data = response.json()
 
