@@ -25,8 +25,17 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""  # service_role key for backend
 
-    # ── Cache & Queue ────────────────────────────────────────
-    REDIS_URL: str = "redis://localhost:6379"
+    # ── Cache & Queue (Upstash Redis — TLS required) ─────────
+    # Paste the full URL from Upstash Console → Redis → Connect → Python.
+    # Format: rediss://:<password>@<host>:<port>
+    # The `rediss://` prefix (double-s) enables TLS — never use plain redis://
+    UPSTASH_REDIS_URL: str = "rediss://:password@host:6379"
+
+    # Legacy alias kept for backward compatibility — always derived from
+    # UPSTASH_REDIS_URL so you only have ONE place to change.
+    @property
+    def REDIS_URL(self) -> str:  # noqa: N802  (upper-case to match existing references)
+        return self.UPSTASH_REDIS_URL
 
     # ── Authentication ───────────────────────────────────────
     JWT_SECRET_KEY: str = "change-me-in-production-minimum-32-chars"
@@ -125,6 +134,11 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
+
+    @property
+    def redis_is_tls(self) -> bool:
+        """True when the configured Redis URL uses TLS (rediss://)."""
+        return self.UPSTASH_REDIS_URL.startswith("rediss://")
 
     model_config = {"env_file": str(_ENV_FILE), "env_file_encoding": "utf-8", "extra": "ignore"}
 

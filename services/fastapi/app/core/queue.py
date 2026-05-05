@@ -1,11 +1,10 @@
-from celery import Celery
-from app.core.config import settings
+"""
+Queue helpers for CareRemind.
 
-celery_app = Celery("careremind", broker=settings.REDIS_URL, backend=settings.REDIS_URL)
+The canonical Celery application lives in app.worker.celery_app.
+Import from there — do NOT define a second Celery instance here.
+"""
 
-celery_app.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
-    timezone="UTC",
-)
+from app.worker.celery_app import celery_app  # re-export for convenience
+
+__all__ = ["celery_app"]

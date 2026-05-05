@@ -4,10 +4,11 @@ version: '3.8'
 # All Python services build from the SAME image (services/fastapi).
 # This is the correct modular monolith layout:
 #   - api     → uvicorn with --reload (hot reload for development)
-#   - worker  → celery worker (consumes background tasks from Redis)
+#   - worker  → celery worker (consumes background tasks from Upstash Redis)
 #
-# Scheduler runs embedded inside the FastAPI lifespan (APScheduler).
-# No separate scheduler container needed.
+# Redis:     Upstash (external, TLS) — no local redis container needed.
+# Postgres:  Supabase in production; local postgres:15 for dev convenience.
+# Scheduler: runs embedded inside the FastAPI lifespan (APScheduler).
 
 services:
   api:
@@ -23,8 +24,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     volumes:
       - ./services/fastapi:/app
 
@@ -36,16 +35,16 @@ services:
       - "app.worker.celery_app"
       - "worker"
       - "--loglevel=info"
-      - "--max-tasks-per-child=1000"  # Prevent memory leaks in long-running workers
+      - "-Q"
+      - "careremind"                    # Consume only from the isolated queue
+      - "--max-tasks-per-child=1000"    # Prevent memory leaks in long-running workers
     env_file:
       - .env
     depends_on:
-      redis:
-        condition: service_healthy
       postgres:
         condition: service_healthy
     volumes:
-      - ./services/fastapi:/app  # Same volume mount — shares code with api
+      - ./services/fastapi:/app         # Shares code with api
 
   # Frontend deploys to Vercel — no container needed.
 
@@ -65,19 +64,5 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
 volumes:
   postgres_data:
-  redis_data:
