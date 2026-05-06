@@ -1,6 +1,6 @@
 """
 Notification Service — Thin wrapper around the LangGraph notification graph.
-Routes messages to WhatsApp (primary) or SMS (fallback).
+Sends reminders via WhatsApp (Meta Cloud API).
 """
 
 import logging
@@ -18,7 +18,7 @@ class NotificationService:
     """
     Sends a reminder to a patient via the LangGraph notification graph.
     Flow: load context → check opt-out → decrypt phone →
-          generate message → try WhatsApp → fallback SMS.
+          generate message → send via WhatsApp.
     """
 
     async def send_reminder(self, reminder: Reminder, db: AsyncSession) -> dict:

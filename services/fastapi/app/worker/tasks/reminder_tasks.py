@@ -1,5 +1,5 @@
 """
-Reminder tasks — send pending reminders via WhatsApp/SMS.
+Reminder tasks — send pending reminders via WhatsApp.
 Called by the scheduler at 9:00 AM IST daily.
 """
 

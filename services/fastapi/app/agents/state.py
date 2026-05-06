@@ -58,7 +58,7 @@ class NotificationState(TypedDict, total=False):
     message: Optional[str]
 
     # Set by send nodes
-    channel: Optional[str]      # "whatsapp" | "sms"
+    channel: Optional[str]      # "whatsapp"
     status: str                 # "sent" | "failed" | "optout" | "error"
     error: Optional[str]
     success: bool

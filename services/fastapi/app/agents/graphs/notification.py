@@ -1,9 +1,9 @@
 """
 Notification Graph — LangGraph state machine for sending reminders.
 
-Flow: load_context → check_optout → decrypt_phone → generate_message → try_whatsapp → try_sms
+Flow: load_context → check_optout → decrypt_phone → generate_message → try_whatsapp → END
 
-Replaces the old NotificationService.send_reminder() method.
+All delivery is WhatsApp-only via Meta Cloud API.
 """
 
 from langgraph.graph import END, StateGraph
@@ -15,7 +15,6 @@ from app.agents.nodes.notification import (
     decrypt_phone_node,
     generate_message_node,
     try_whatsapp_node,
-    try_sms_node,
 )
 
 
@@ -40,12 +39,6 @@ def _should_continue_after_decrypt(state: NotificationState) -> str:
     return "generate_message"
 
 
-def _should_try_sms_fallback(state: NotificationState) -> str:
-    """Router: skip SMS if WhatsApp succeeded."""
-    if state.get("status") == "sent":
-        return END
-    return "try_sms"
-
 
 def build_notification_graph() -> StateGraph:
     """
@@ -53,7 +46,10 @@ def build_notification_graph() -> StateGraph:
 
     Graph:
         START → load_context → check_optout → decrypt_phone →
-        generate_message → try_whatsapp → try_sms → END
+        generate_message → try_whatsapp → END
+
+    WhatsApp is the sole delivery channel.
+    If WhatsApp is not configured or fails, reminder is marked FAILED.
     """
     graph = StateGraph(NotificationState)
 
@@ -63,7 +59,6 @@ def build_notification_graph() -> StateGraph:
     graph.add_node("decrypt_phone", decrypt_phone_node)
     graph.add_node("generate_message", generate_message_node)
     graph.add_node("try_whatsapp", try_whatsapp_node)
-    graph.add_node("try_sms", try_sms_node)
 
     # ── Entry ────────────────────────────────────────────────
     graph.set_entry_point("load_context")
@@ -73,8 +68,7 @@ def build_notification_graph() -> StateGraph:
     graph.add_conditional_edges("check_optout", _should_continue_after_optout)
     graph.add_conditional_edges("decrypt_phone", _should_continue_after_decrypt)
     graph.add_edge("generate_message", "try_whatsapp")
-    graph.add_conditional_edges("try_whatsapp", _should_try_sms_fallback)
-    graph.add_edge("try_sms", END)
+    graph.add_edge("try_whatsapp", END)
 
     return graph.compile()
 

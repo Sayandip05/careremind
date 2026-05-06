@@ -1,9 +1,11 @@
 """
 Ingestion Graph — LangGraph state machine for the upload pipeline.
 
-Flow: route_input → extract_excel/extract_ocr → deduplicate → save_to_db
+Flow (normal):
+  route_input → extract_excel / extract_ocr → deduplicate → save_to_db → END
 
-Replaces the old Orchestrator class with a proper state graph.
+Flow (human-in-the-loop confirm — rows pre-injected):
+  route_input → deduplicate → save_to_db → END  (extraction skipped)
 """
 
 from langgraph.graph import END, StateGraph
@@ -15,7 +17,15 @@ from app.agents.nodes.persistence import save_to_db_node
 
 
 def _route_by_file_type(state: IngestionState) -> str:
-    """Router: send to the correct extraction node based on file type."""
+    """
+    Router: decides which extraction node to run.
+    If extracted_rows are already in state (injected by the confirm endpoint),
+    skip extraction entirely and go straight to deduplication.
+    """
+    # Human-in-the-loop confirm path: rows already reviewed by doctor
+    if state.get("extracted_rows") is not None:
+        return "deduplicate"
+
     file_type = state.get("file_type", "")
     if file_type == "excel":
         return "extract_excel"
@@ -30,6 +40,7 @@ def build_ingestion_graph() -> StateGraph:
 
     Graph:
         START → route_input → extract_excel / extract_ocr → deduplicate → save_to_db → END
+                           ↘ (skip extraction if rows pre-injected) ↗
     """
     graph = StateGraph(IngestionState)
 
@@ -45,6 +56,7 @@ def build_ingestion_graph() -> StateGraph:
         {
             "extract_excel": "extract_excel",
             "extract_ocr": "extract_ocr",
+            "deduplicate": "deduplicate",   # bypass route
             END: END,
         },
     )

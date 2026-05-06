@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # Format: rediss://:<password>@<host>:<port>
     # The `rediss://` prefix (double-s) enables TLS — never use plain redis://
     UPSTASH_REDIS_URL: str = "rediss://:password@host:6379"
+    # REST HTTP credentials (Upstash REST SDK / direct HTTP calls)
+    UPSTASH_REDIS_REST_URL: str = ""
+    UPSTASH_REDIS_REST_TOKEN: str = ""
 
     # Legacy alias kept for backward compatibility — always derived from
     # UPSTASH_REDIS_URL so you only have ONE place to change.
@@ -66,9 +69,6 @@ class Settings(BaseSettings):
     META_PHONE_NUMBER_ID: str = ""
     META_WHATSAPP_API_VERSION: str = "v21.0"
 
-    # ── SMS Fallback ─────────────────────────────────────────
-    FAST2SMS_API_KEY: str = ""
-    FAST2SMS_API_URL: str = "https://www.fast2sms.com/dev/bulkV2"
 
     # ── Vision OCR ───────────────────────────────────────────
     VISION_BACKEND: str = "nvidia"  # nvidia | openai | textract

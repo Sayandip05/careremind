@@ -36,9 +36,9 @@ class NvidiaService:
     def __init__(self):
         self.api_key = settings.NVIDIA_API_KEY
         self.api_url = settings.NVIDIA_API_URL
-        self.model = "google/gemma-3-27b-it"
+        self.model = "meta/llama-3.2-11b-vision-instruct"
 
-    async def vision(self, image_base64: str, prompt: str, system: str = "") -> str:
+    async def vision(self, image_base64: str, prompt: str, system: str = "", mime_type: str = "image/jpeg") -> str:
         """
         Send an image + prompt to NVIDIA vision model.
         Uses inline base64 image format.
@@ -59,7 +59,7 @@ class NvidiaService:
                 {
                     "type": "image_url",
                     "image_url": {
-                        "url": f"data:image/jpeg;base64,{image_base64}",
+                        "url": f"data:{mime_type};base64,{image_base64}",
                     },
                 },
             ],

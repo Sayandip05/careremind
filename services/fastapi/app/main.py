@@ -90,13 +90,11 @@ async def lifespan(app: FastAPI):
     
     # Inject HTTP client into services
     from app.core.integrations.whatsapp_service import set_http_client as set_whatsapp_client
-    from app.core.integrations.sms_service import set_http_client as set_sms_client
     from app.core.integrations.razorpay_service import set_http_client as set_razorpay_client
     from app.core.integrations.openai_service import set_http_client as set_openai_client
     from app.core.integrations.nvidia_service import set_http_client as set_nvidia_client
     
     set_whatsapp_client(app.state.http_client)
-    set_sms_client(app.state.http_client)
     set_razorpay_client(app.state.http_client)
     set_openai_client(app.state.http_client)
     set_nvidia_client(app.state.http_client)

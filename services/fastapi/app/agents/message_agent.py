@@ -58,7 +58,7 @@ class MessageAgent:
                 polished = await openai_service.chat(
                     prompt=(
                         f"Rewrite this clinic reminder message to sound more natural and warm "
-                        f"in {language.get_language_name()}. Keep it short (under 160 chars for SMS). "
+                        f"in {language.get_language_name()}. Keep it concise (under 300 chars). "
                         f"Keep all the factual information unchanged. "
                         f"The doctor is a {specialty.get_specialty_name()}. "
                         f"Tone: {specialty.get_tone()}.\n\n"

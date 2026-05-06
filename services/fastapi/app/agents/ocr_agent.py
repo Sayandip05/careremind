@@ -47,10 +47,26 @@ class OcrAgent:
     Primary: NVIDIA Gemma 3 | Fallback: OpenAI GPT-4o Mini
     """
 
+    @staticmethod
+    def _detect_mime_type(image_bytes: bytes) -> str:
+        """Detect image MIME type from magic bytes — prevents misidentifying PNG/WEBP as JPEG."""
+        if image_bytes[:2] == b"\xff\xd8":
+            return "image/jpeg"
+        if image_bytes[:4] == b"\x89PNG":
+            return "image/png"
+        if image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
+            return "image/webp"
+        if image_bytes[:3] == b"GIF":
+            return "image/gif"
+        # Default fallback
+        return "image/jpeg"
+
     async def extract(self, image_bytes: bytes) -> dict:
         """
-        Send image to vision API and parse the response.
-        Tries NVIDIA first, falls back to OpenAI if NVIDIA fails.
+        Send image to NVIDIA vision model and parse structured patient data.
+
+        Primary VLM: NVIDIA meta/llama-3.2-11b-vision-instruct
+        Production fallback: OpenAI GPT-4o (see placeholder below — enable when OPENAI_API_KEY is set)
 
         Returns:
             {
@@ -72,36 +88,39 @@ class OcrAgent:
                 "raw_response": "",
                 "provider": "none",
             }
-        
+
         errors: list[str] = []
 
-        # Encode image to base64
+        # Detect MIME type from magic bytes
+        mime_type = self._detect_mime_type(image_bytes)
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
-        # Try NVIDIA first
+        # ── Primary: NVIDIA Vision ────────────────────────────────────────
         provider = "nvidia"
         raw_response = await nvidia_service.vision(
             image_base64=image_b64,
             prompt="Extract all patient entries from this clinic register photo.",
             system=OCR_SYSTEM_PROMPT,
+            mime_type=mime_type,
         )
 
-        # Fallback to OpenAI if NVIDIA returned empty
-        if not raw_response:
-            logger.warning("NVIDIA returned empty — falling back to OpenAI")
-            provider = "openai"
-            raw_response = await openai_service.vision(
-                image_base64=image_b64,
-                prompt="Extract all patient entries from this clinic register photo.",
-                system=OCR_SYSTEM_PROMPT,
-            )
+        # ── Production Fallback: OpenAI GPT-4o ───────────────────────────
+        # Uncomment when OPENAI_API_KEY is configured in production.
+        # if not raw_response:
+        #     logger.warning("NVIDIA returned empty — falling back to OpenAI")
+        #     provider = "openai"
+        #     raw_response = await openai_service.vision(
+        #         image_base64=image_b64,
+        #         prompt="Extract all patient entries from this clinic register photo.",
+        #         system=OCR_SYSTEM_PROMPT,
+        #     )
 
         if not raw_response:
             return {
                 "rows": [],
                 "total_rows": 0,
                 "skipped": 0,
-                "errors": ["Both NVIDIA and OpenAI returned empty — check API keys"],
+                "errors": ["NVIDIA VLM returned empty — check NVIDIA_API_KEY and model availability"],
                 "raw_response": "",
                 "provider": "none",
             }

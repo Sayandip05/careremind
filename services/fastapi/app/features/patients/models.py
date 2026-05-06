@@ -9,8 +9,6 @@ from app.core.database import Base
 
 class PreferredChannel(str, enum.Enum):
     WHATSAPP = "whatsapp"
-    SMS = "sms"
-    BOTH = "both"
 
 
 class Patient(Base):

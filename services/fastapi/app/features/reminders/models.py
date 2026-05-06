@@ -18,7 +18,6 @@ class ReminderStatus(str, enum.Enum):
 
 class ChannelType(str, enum.Enum):
     WHATSAPP = "whatsapp"
-    SMS = "sms"
 
 
 class Reminder(Base):
@@ -32,7 +31,7 @@ class Reminder(Base):
     status = Column(Enum(ReminderStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=ReminderStatus.PENDING)
     message_text = Column(Text)
     language_used = Column(String)
-    channel = Column(String)  # 'whatsapp' or 'sms'
+    channel = Column(String)  # 'whatsapp'
     scheduled_at = Column(DateTime(timezone=True), nullable=False)
     sent_at = Column(DateTime(timezone=True))
     error_log = Column(Text)
