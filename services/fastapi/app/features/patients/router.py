@@ -56,6 +56,13 @@ async def create_patient(
         data=data,
         db=db,
     )
+    logger.info(
+        "Patient created: id=%s, tenant_id=%s, name=%s, channel=%s",
+        patient.id,
+        tenant.id,
+        patient.name,
+        patient.preferred_channel
+    )
     return patient
 
 
@@ -94,6 +101,11 @@ async def update_patient(
         data=data,
         db=db,
     )
+    logger.info(
+        "Patient updated: id=%s, tenant_id=%s",
+        patient_id,
+        tenant.id
+    )
     return patient
 
 
@@ -111,4 +123,9 @@ async def delete_patient(
         tenant_id=str(tenant.id),
         patient_id=patient_id,
         db=db,
+    )
+    logger.info(
+        "Patient deleted: id=%s, tenant_id=%s",
+        patient_id,
+        tenant.id
     )

@@ -67,6 +67,13 @@ async def create_appointment(
             data=data,
             db=db,
         )
+        logger.info(
+            "Appointment created: id=%s, patient_id=%s, visit_date=%s, next_visit=%s",
+            appointment.id,
+            appointment.patient_id,
+            appointment.visit_date,
+            appointment.next_visit_date
+        )
         return appointment
     except HTTPException:
         raise
