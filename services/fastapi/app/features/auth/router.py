@@ -2,6 +2,7 @@
 Auth routes — registration, login, and tenant profile.
 """
 
+import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +12,8 @@ from app.features.auth.models import Tenant
 from app.features.auth.schemas import TenantResponse, TenantUpdate, TenantRegister, TokenResponse
 from app.features.auth import service as auth_service
 from app.specialty import list_known_specialties
+
+logger = logging.getLogger("careremind.auth")
 
 router = APIRouter()
 
@@ -58,11 +61,18 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
             openid = await google_sso.verify_and_process(request)
         
         if not openid or not openid.email:
+            logger.warning("Google OAuth failed: email not provided")
             return RedirectResponse(
                 url=f"{settings.FRONTEND_URL}/login?error=Email+not+provided+by+Google"
             )
         
         result = await auth_service.authenticate_sso(openid, db)
+        logger.info(
+            "Google OAuth successful: email=%s, tenant_id=%s, doctor_name=%s",
+            openid.email,
+            result.tenant_id,
+            result.doctor_name
+        )
         # Redirect to frontend with token in URL — frontend will extract and store it
         return RedirectResponse(
             url=(
@@ -73,6 +83,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
             )
         )
     except Exception as e:
+        logger.error("Google OAuth error: %s", str(e), exc_info=True)
         return RedirectResponse(
             url=f"{settings.FRONTEND_URL}/login?error=OAuth+failed"
         )
@@ -92,11 +103,18 @@ async def facebook_callback(request: Request, db: AsyncSession = Depends(get_db)
             openid = await facebook_sso.verify_and_process(request)
         
         if not openid or not openid.email:
+            logger.warning("Facebook OAuth failed: email not provided")
             return RedirectResponse(
                 url=f"{settings.FRONTEND_URL}/login?error=Email+not+provided+by+Facebook"
             )
         
         result = await auth_service.authenticate_sso(openid, db)
+        logger.info(
+            "Facebook OAuth successful: email=%s, tenant_id=%s, doctor_name=%s",
+            openid.email,
+            result.tenant_id,
+            result.doctor_name
+        )
         return RedirectResponse(
             url=(
                 f"{settings.FRONTEND_URL}/login"
@@ -123,6 +141,13 @@ async def register(
     Consolidates functionality.
     """
     tenant = await auth_service.register_tenant(data, db)
+    logger.info(
+        "New registration: email=%s, doctor_name=%s, specialty=%s, clinic=%s",
+        tenant.email,
+        tenant.doctor_name,
+        tenant.specialty,
+        tenant.clinic_name
+    )
     
     # Generate token for immediate login
     from app.core.security import create_access_token
@@ -151,7 +176,13 @@ async def login(
     Authenticate a doctor and return a JWT.
     Consolidates functionality.
     """
-    return await auth_service.authenticate_tenant(form_data.username, form_data.password, db)
+    try:
+        result = await auth_service.authenticate_tenant(form_data.username, form_data.password, db)
+        logger.info("Login successful: email=%s, tenant_id=%s", form_data.username, result.tenant_id)
+        return result
+    except Exception as e:
+        logger.warning("Login failed: email=%s, reason=%s", form_data.username, str(e))
+        raise
 
 
 
