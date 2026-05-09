@@ -11,7 +11,6 @@ returns None / False / 0 and logs a WARNING — the API continues serving.
 
 from typing import Optional
 import logging
-import ssl
 
 import redis.asyncio as redis
 from redis.exceptions import RedisError
@@ -22,12 +21,12 @@ logger = logging.getLogger("careremind.cache")
 
 def _build_redis_client() -> redis.Redis:
     """
-    Factory that creates a redis.asyncio.Redis instance with the correct
-    TLS settings for Upstash.
+    Factory that creates a redis.asyncio.Redis instance with correct TLS
+    settings for Upstash (redis-py 5.0.1).
 
-    Upstash requires:
-      - scheme:          rediss:// (TLS)
-      - ssl_cert_reqs:   required  (validate the server certificate)
+    Upstash uses rediss:// (TLS). redis-py 5.0.1 requires ssl_cert_reqs
+    passed as the string 'required' — not ssl.CERT_REQUIRED and not
+    ssl_context (both of which cause AttributeError in this version).
     """
     extra: dict = {
         "socket_connect_timeout": 5,
@@ -35,9 +34,7 @@ def _build_redis_client() -> redis.Redis:
     }
 
     if settings.redis_is_tls:
-        # ssl.CERT_REQUIRED tells the Redis client to validate the server's
-        # certificate against the system CA bundle — mandatory for production.
-        extra["ssl_cert_reqs"] = ssl.CERT_REQUIRED
+        extra["ssl_cert_reqs"] = "required"
 
     return redis.from_url(settings.UPSTASH_REDIS_URL, **extra)
 

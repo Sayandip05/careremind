@@ -269,5 +269,132 @@ class PDFGenerator:
             return None
 
 
+    @staticmethod
+    async def generate_daily_schedule_bytes(
+        schedule_date: date,
+        clinic_name: str,
+        doctor_name: str,
+        bookings: List[Booking],
+        walk_in_slots: int,
+    ) -> Optional[bytes]:
+        """
+        Generate a daily schedule PDF and return raw bytes (no storage upload).
+        Used for on-demand streaming downloads from the doctor's web dashboard.
+        """
+        try:
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4)
+            story = []
+            styles = getSampleStyleSheet()
+
+            title_style = ParagraphStyle(
+                "CustomTitle",
+                parent=styles["Heading1"],
+                fontSize=20,
+                textColor=colors.HexColor("#1a1a1a"),
+                spaceAfter=10,
+                alignment=1,
+            )
+            story.append(Paragraph("Daily Appointment Schedule", title_style))
+
+            subtitle_style = ParagraphStyle(
+                "Subtitle",
+                parent=styles["Normal"],
+                fontSize=14,
+                textColor=colors.HexColor("#4a4a4a"),
+                alignment=1,
+            )
+            story.append(Paragraph(schedule_date.strftime("%A, %d %B %Y"), subtitle_style))
+            story.append(Paragraph(f"{clinic_name} — Dr. {doctor_name}", subtitle_style))
+            story.append(Spacer(1, 0.3 * inch))
+
+            section_style = ParagraphStyle(
+                "Section",
+                parent=styles["Heading2"],
+                fontSize=14,
+                textColor=colors.HexColor("#2563eb"),
+                spaceAfter=10,
+            )
+
+            if bookings:
+                story.append(Paragraph("ONLINE BOOKINGS (Priority)", section_style))
+                booking_data = [["#", "Time", "Patient Name", "Clinic"]]
+                for booking in bookings:
+                    booking_data.append([
+                        f"#{booking.serial_number}" if booking.serial_number else "—",
+                        booking.slot_time.strftime("%I:%M %p"),
+                        booking.patient.name if booking.patient else "Unknown",
+                        booking.clinic_location.clinic_name if booking.clinic_location else "—",
+                    ])
+
+                booking_table = Table(
+                    booking_data,
+                    colWidths=[0.7 * inch, 1.2 * inch, 2.8 * inch, 1.8 * inch],
+                )
+                booking_table.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2563eb")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 11),
+                    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 1), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                    ("TOPPADDING", (0, 0), (-1, -1), 8),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9fafb")]),
+                ]))
+                story.append(booking_table)
+                story.append(Spacer(1, 0.4 * inch))
+
+            story.append(Paragraph("WALK-IN SLOTS", section_style))
+            walk_in_data = [["Slot", "Patient Name", "Status"]]
+            for i in range(1, walk_in_slots + 1):
+                walk_in_data.append([f"Walk-in #{i}", "_______________", "[ ]"])
+
+            walk_in_table = Table(
+                walk_in_data,
+                colWidths=[1.2 * inch, 2.8 * inch, 1.0 * inch],
+            )
+            walk_in_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#64748b")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 11),
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 1), (-1, -1), 10),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ]))
+            story.append(walk_in_table)
+            story.append(Spacer(1, 0.3 * inch))
+
+            footer_style = ParagraphStyle(
+                "Footer",
+                parent=styles["Normal"],
+                fontSize=9,
+                textColor=colors.HexColor("#666666"),
+                alignment=1,
+            )
+            story.append(Paragraph(
+                f"Total Online Bookings: {len(bookings)} | Walk-in Slots: {walk_in_slots}",
+                footer_style,
+            ))
+            story.append(Paragraph(
+                f"Downloaded on {date.today().strftime('%d %B %Y')}",
+                footer_style,
+            ))
+
+            doc.build(story)
+            return buffer.getvalue()
+
+        except Exception as e:
+            logger.error("Failed to generate daily schedule bytes: %s", e, exc_info=True)
+            return None
+
+
 pdf_generator = PDFGenerator()
+
 
