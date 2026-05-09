@@ -354,7 +354,12 @@ async def _handle_optout(phone_raw: str, db: AsyncSession):
             )
 
     await db.flush()
-    logger.info("Opted out %d patients, cancelled pending reminders", len(patients))
+    logger.info(
+        "Patient opt-out processed: phone=...%s, patients_affected=%d, reminders_cancelled=%d",
+        phone[-4:],
+        len(patients),
+        len(appt_ids) if appt_ids else 0
+    )
 
 
 import hmac
@@ -387,7 +392,11 @@ async def razorpay_webhook(
         ).hexdigest()
         
         if not hmac.compare_digest(expected_signature, x_razorpay_signature):
-            logger.critical("Razorpay webhook signature mismatch! Possible spoof attack.")
+            logger.critical(
+                "Razorpay webhook signature mismatch! Possible spoof attack. Expected: %s..., Got: %s...",
+                expected_signature[:8],
+                x_razorpay_signature[:8]
+            )
             return JSONResponse(status_code=400, content={"error": "Invalid signature"})
             
         payload = await request.json()

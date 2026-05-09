@@ -5,7 +5,7 @@ import hmac
 import hashlib
 
 from cryptography.fernet import Fernet
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 from jwt.exceptions import InvalidTokenError
@@ -148,6 +148,49 @@ async def get_current_tenant(
     from app.features.auth.models import Tenant
 
     payload = verify_access_token(token)
+    tenant_id = payload["sub"]
+
+    result = await db.execute(
+        select(Tenant).where(Tenant.id == tenant_id, Tenant.is_active.is_(True))
+    )
+    tenant = result.scalar_one_or_none()
+
+    if tenant is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account not found or deactivated",
+        )
+
+    return tenant
+
+
+async def get_current_tenant_flexible(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> "Tenant":
+    """
+    Like get_current_tenant but accepts the JWT from either:
+      1. Authorization: Bearer <token>  (standard axios calls)
+      2. ?token=<token>                 (query param for browser download links)
+
+    Only use on file-streaming endpoints where the browser anchor download
+    cannot set Authorization headers.
+    """
+    from app.features.auth.models import Tenant  # noqa: F811
+
+    auth_header: str = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        raw_token = auth_header[7:]
+    else:
+        raw_token = request.query_params.get("token", "")
+
+    if not raw_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    payload = verify_access_token(raw_token)
     tenant_id = payload["sub"]
 
     result = await db.execute(
