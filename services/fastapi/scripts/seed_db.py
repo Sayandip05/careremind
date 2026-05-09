@@ -180,37 +180,71 @@ async def seed_database():
             
             await db.flush()
             
-            # 6. Create Sample Bookings (V2)
+            # 6. Create Sample Bookings — spread across yesterday, today, tomorrow
             print("Creating sample bookings...")
-            tomorrow = today + timedelta(days=1)
-            
-            for i, patient in enumerate(patients[:5]):
-                booking = Booking(
+
+            from datetime import datetime as dt, timezone as tz
+
+            # (days_offset, patient_idx, clinic, hour, minute, serial, status)
+            booking_schedule = [
+                # Yesterday — completed
+                (-1, 0, clinic1, 9,  0,  1, BookingStatus.COMPLETED),
+                (-1, 1, clinic1, 9,  30, 2, BookingStatus.COMPLETED),
+                (-1, 2, clinic2, 10, 0,  1, BookingStatus.COMPLETED),
+                (-1, 3, clinic2, 10, 30, 2, BookingStatus.COMPLETED),
+                (-1, 4, clinic1, 11, 0,  3, BookingStatus.COMPLETED),
+                (-1, 5, clinic1, 11, 30, 4, BookingStatus.COMPLETED),
+                (-1, 6, clinic2, 14, 0,  3, BookingStatus.COMPLETED),
+                # Today — confirmed (shows on dashboard by default)
+                (0,  7, clinic1, 9,  0,  1, BookingStatus.CONFIRMED),
+                (0,  8, clinic1, 9,  30, 2, BookingStatus.CONFIRMED),
+                (0,  9, clinic2, 10, 0,  1, BookingStatus.CONFIRMED),
+                (0,  0, clinic1, 10, 30, 3, BookingStatus.CONFIRMED),
+                (0,  1, clinic2, 11, 0,  2, BookingStatus.CONFIRMED),
+                (0,  2, clinic1, 14, 0,  4, BookingStatus.CONFIRMED),
+                (0,  3, clinic2, 14, 30, 3, BookingStatus.CONFIRMED),
+                # Tomorrow — confirmed (upcoming)
+                (1,  4, clinic1, 9,  0,  1, BookingStatus.CONFIRMED),
+                (1,  5, clinic1, 9,  30, 2, BookingStatus.CONFIRMED),
+                (1,  6, clinic2, 10, 0,  1, BookingStatus.CONFIRMED),
+                (1,  7, clinic1, 11, 0,  3, BookingStatus.CONFIRMED),
+                (1,  8, clinic2, 11, 30, 2, BookingStatus.CONFIRMED),
+            ]
+
+            total_bookings = 0
+            for idx, (days_off, p_idx, clinic, hour, minute, serial, bstatus) in enumerate(booking_schedule):
+                target_date = today + timedelta(days=days_off)
+                pat = patients[p_idx]
+                is_done = bstatus == BookingStatus.COMPLETED
+                b = Booking(
                     id=str(uuid.uuid4()),
                     tenant_id=tenant.id,
-                    patient_id=patient.id,
-                    clinic_location_id=clinic1.id if i % 2 == 0 else clinic2.id,
-                    booking_date=tomorrow,
-                    slot_time=time(9 + i, 0),
-                    serial_number=i + 1,
-                    status=BookingStatus.CONFIRMED,
+                    patient_id=pat.id,
+                    clinic_location_id=clinic.id,
+                    booking_date=target_date,
+                    slot_time=time(hour, minute),
+                    serial_number=serial,
+                    status=bstatus,
                     payment_status=PaymentStatus.COMPLETED,
                     amount=200.00,
-                    razorpay_order_id=f"order_demo_{i}",
-                    razorpay_payment_id=f"pay_demo_{i}",
+                    razorpay_order_id=f"order_demo_{idx}",
+                    razorpay_payment_id=f"pay_demo_{idx}",
+                    confirmed_at=dt.now(tz.utc) - timedelta(days=abs(days_off), hours=2),
+                    completed_at=dt.now(tz.utc) - timedelta(days=abs(days_off)) if is_done else None,
                 )
-                db.add(booking)
-            
+                db.add(b)
+                total_bookings += 1
+
             await db.commit()
             
             print("✅ Database seeded successfully!")
             print("\n📊 Created:")
             print(f"  - 1 Demo Tenant (Doctor)")
-            print(f"  - 2 Clinic Locations")
+            print(f"  - 2 Clinic Locations (Main + Branch)")
             print(f"  - {len(patients)} Patients")
             print(f"  - {len(appointments)} Appointments")
             print(f"  - {len(appointments) * 2} Reminders")
-            print(f"  - 5 Bookings")
+            print(f"  - {total_bookings} Bookings (yesterday: 7, today: 7, tomorrow: 5)")
             print("\n🔑 Demo Credentials:")
             print("  Email: demo@careremind.com")
             print("  Password: Demo@123")

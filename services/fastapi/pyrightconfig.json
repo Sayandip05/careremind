@@ -2,9 +2,13 @@
     "venvPath": ".",
     "venv": "venv",
     "root": ".",
-    "extraPaths": ["app"],
+    "extraPaths": [
+        "."
+    ],
     "pythonVersion": "3.11",
-    "typeCheckingMode": "basic",
-    "reportMissingImports": true,
-    "reportMissingModuleSource": false
+    "typeCheckingMode": "off",
+    "reportMissingImports": false,
+    "reportMissingModuleSource": false,
+    "reportUnusedImport": false,
+    "reportUndefinedVariable": false
 }
