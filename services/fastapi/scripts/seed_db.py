@@ -60,6 +60,121 @@ async def seed_database():
             )
             db.add(tenant)
             await db.flush()
+
+            # ── Doctor 2: Dr. Priya Menon (Paediatrician — Bengaluru) ────────────
+            print("Creating doctor 2...")
+            tenant2 = Tenant(
+                id=str(uuid.uuid4()),
+                doctor_name="Dr. Priya Menon",
+                clinic_name="Little Stars Paediatrics",
+                email="priya.menon@careremind.com",
+                phone="+919845001122",
+                specialty="paediatrics",
+                language_preference="english",
+                whatsapp_number="+919845001122",
+                hashed_password=get_password_hash("Priya@123"),
+                plan=PlanType.PRO,
+                is_active=True,
+                street="78 Koramangala 4th Block",
+                city="Bengaluru",
+                pincode="560034",
+                state="Karnataka",
+            )
+            db.add(tenant2)
+
+            # ── Doctor 3: Dr. Amit Verma (Cardiologist — Delhi) ─────────────────
+            print("Creating doctor 3...")
+            tenant3 = Tenant(
+                id=str(uuid.uuid4()),
+                doctor_name="Dr. Amit Verma",
+                clinic_name="HeartCare Clinic",
+                email="amit.verma@careremind.com",
+                phone="+911123334455",
+                specialty="cardiology",
+                language_preference="hindi",
+                whatsapp_number="+911123334455",
+                hashed_password=get_password_hash("Amit@123"),
+                plan=PlanType.BASIC,
+                is_active=True,
+                street="22 Connaught Place",
+                city="New Delhi",
+                pincode="110001",
+                state="Delhi",
+            )
+            db.add(tenant3)
+            await db.flush()
+
+            # Clinic for Dr. Priya Menon
+            clinic_priya = ClinicLocation(
+                id=str(uuid.uuid4()),
+                tenant_id=tenant2.id,
+                clinic_name="Little Stars - Koramangala",
+                address_line="78 Koramangala 4th Block",
+                city="Bengaluru",
+                pincode="560034",
+                state="Karnataka",
+                phone="+919845001122",
+                is_active=True,
+            )
+            db.add(clinic_priya)
+
+            # Clinic for Dr. Amit Verma
+            clinic_amit = ClinicLocation(
+                id=str(uuid.uuid4()),
+                tenant_id=tenant3.id,
+                clinic_name="HeartCare - Connaught Place",
+                address_line="22 Connaught Place",
+                city="New Delhi",
+                pincode="110001",
+                state="Delhi",
+                phone="+911123334455",
+                is_active=True,
+            )
+            db.add(clinic_amit)
+            await db.flush()
+
+            # Patients for Dr. Priya Menon
+            paed_patients_data = [
+                {"name": "Rohan Mehta",   "phone": "+919900001001"},
+                {"name": "Ananya Bose",   "phone": "+919900001002"},
+                {"name": "Kabir Sharma",  "phone": "+919900001003"},
+            ]
+            paed_patients = []
+            for pd in paed_patients_data:
+                paed_patients.append(Patient(
+                    id=str(uuid.uuid4()),
+                    tenant_id=tenant2.id,
+                    name=pd["name"],
+                    phone_encrypted=encryption_service.encrypt(pd["phone"]),
+                    phone_hash=encryption_service.hash_phone(pd["phone"]),
+                    preferred_channel=PreferredChannel.WHATSAPP,
+                    has_whatsapp=True,
+                    language_preference="english",
+                    is_optout=False,
+                ))
+                db.add(paed_patients[-1])
+
+            # Patients for Dr. Amit Verma
+            cardio_patients_data = [
+                {"name": "Ravi Shankar",   "phone": "+911100002001"},
+                {"name": "Meena Kapoor",   "phone": "+911100002002"},
+                {"name": "Sunil Joshi",    "phone": "+911100002003"},
+            ]
+            cardio_patients = []
+            for pd in cardio_patients_data:
+                cardio_patients.append(Patient(
+                    id=str(uuid.uuid4()),
+                    tenant_id=tenant3.id,
+                    name=pd["name"],
+                    phone_encrypted=encryption_service.encrypt(pd["phone"]),
+                    phone_hash=encryption_service.hash_phone(pd["phone"]),
+                    preferred_channel=PreferredChannel.WHATSAPP,
+                    has_whatsapp=True,
+                    language_preference="hindi",
+                    is_optout=False,
+                ))
+                db.add(cardio_patients[-1])
+            await db.flush()
             
             # 2. Create Clinic Locations
             print("Creating clinic locations...")
@@ -237,18 +352,19 @@ async def seed_database():
 
             await db.commit()
             
-            print("✅ Database seeded successfully!")
-            print("\n📊 Created:")
-            print(f"  - 1 Demo Tenant (Doctor)")
-            print(f"  - 2 Clinic Locations (Main + Branch)")
-            print(f"  - {len(patients)} Patients")
-            print(f"  - {len(appointments)} Appointments")
+            print("\u2705 Database seeded successfully!")
+            print("\n\U0001f4ca Created:")
+            print(f"  - 3 Doctors (Demo + Priya Menon + Amit Verma)")
+            print(f"  - 4 Clinic Locations")
+            print(f"  - {len(patients) + len(paed_patients) + len(cardio_patients)} Patients total")
+            print(f"  - {len(appointments)} Appointments (demo doctor)")
             print(f"  - {len(appointments) * 2} Reminders")
             print(f"  - {total_bookings} Bookings (yesterday: 7, today: 7, tomorrow: 5)")
-            print("\n🔑 Demo Credentials:")
-            print("  Email: demo@careremind.com")
-            print("  Password: Demo@123")
-            print("\n🚀 You can now login and explore the system!")
+            print("\n\U0001f511 Demo Credentials:")
+            print("  [1] demo@careremind.com        / Demo@123   (General, Mumbai)")
+            print("  [2] priya.menon@careremind.com / Priya@123  (Paediatrics, Bengaluru)")
+            print("  [3] amit.verma@careremind.com  / Amit@123   (Cardiology, Delhi)")
+            print("\n\U0001f680 All 3 accounts ready to explore!")
             
         except Exception as e:
             print(f"❌ Error seeding database: {e}")

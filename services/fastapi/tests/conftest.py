@@ -3,10 +3,15 @@ Pytest configuration and fixtures.
 """
 
 import asyncio
+import os
 from typing import AsyncGenerator, Generator
 
+# Disable rate limiting BEFORE importing the app, so SlowAPI uses memory backend
+# and the per-IP counters don't bleed between tests.
+os.environ.setdefault("TESTING", "true")
+
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
 
@@ -77,16 +82,31 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
 
 @pytest.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """Create a test client with database session override."""
+    """Create a test client with database session override.
     
+    - follow_redirects=True so 307 trailing-slash redirects are transparent.
+    - Unique X-Forwarded-For per fixture instance prevents cross-test rate-limit bleed.
+    """
+    import uuid as _uuid
+
     async def override_get_db():
         yield db_session
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+
+    # Each test gets a distinct fake IP so rate-limit counters don't accumulate
+    unique_ip = f"10.{_uuid.uuid4().int % 255}.{_uuid.uuid4().int % 255}.1"
+    headers = {"X-Forwarded-For": unique_ip}
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        follow_redirects=True,
+        headers=headers,
+    ) as ac:
         yield ac
-    
+
     app.dependency_overrides.clear()
 
 
@@ -116,11 +136,19 @@ def sample_patient_data():
 
 @pytest.fixture
 async def auth_headers(client: AsyncClient, sample_tenant_data):
-    """Create a test user and return authorization headers."""
+    """Create a test user and return authorization headers.
+
+    Uses the same unique-IP client from the `client` fixture so the
+    rate limiter counter is consistent across register + login calls
+    within a single test.
+    """
     # Register a test tenant
     register_response = await client.post("/api/v1/auth/register", json=sample_tenant_data)
-    
-    # Login to get token
+    assert register_response.status_code == 201, (
+        f"Registration failed in auth_headers fixture: {register_response.text}"
+    )
+
+    # Login to get token — same client = same fake IP = within rate limit window
     login_response = await client.post(
         "/api/v1/auth/login",
         data={
@@ -128,7 +156,9 @@ async def auth_headers(client: AsyncClient, sample_tenant_data):
             "password": sample_tenant_data["password"],
         }
     )
-    
+    assert login_response.status_code == 200, (
+        f"Login failed in auth_headers fixture (status {login_response.status_code}): {login_response.text}"
+    )
+
     token = login_response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
-

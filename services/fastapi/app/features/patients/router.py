@@ -2,8 +2,12 @@
 Patient routes — CRUD with encryption, dedup, and IDOR protection.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger("careremind.patients")
 
 from app.core.database import get_db
 from app.core.security import get_current_tenant

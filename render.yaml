@@ -1,0 +1,120 @@
+# render.yaml — CareRemind Render Blueprint
+# ============================================
+# Defines all Render services in one file.
+# Commit this to git — Render reads it automatically on Blueprint sync.
+#
+# Usage: Render Dashboard → New → Blueprint → connect this repo.
+# All env vars marked `sync: false` must be added manually in the dashboard.
+
+services:
+
+  # ── FastAPI Web Service ────────────────────────────────────────────────────
+  - type: web
+    name: careremind-api
+    runtime: docker
+    # Pull pre-built image from GitHub Container Registry (pushed by CI/CD pipeline).
+    # Replace YOUR_GITHUB_USERNAME with your actual GitHub username.
+    image:
+      url: ghcr.io/YOUR_GITHUB_USERNAME/careremind-api:latest
+    plan: free            # Change to "starter" ($7/mo) for always-on before interviews
+    healthCheckPath: /health
+    autoDeploy: false     # Triggered manually via deploy hook from GitHub Actions
+
+    envVars:
+      # ── Core ───────────────────────────────
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+      # ── Database (Supabase PostgreSQL) ──────
+      - key: DATABASE_URL
+        sync: false       # Set manually in Render dashboard
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+
+      # ── Cache / Queue (Upstash Redis) ───────
+      - key: UPSTASH_REDIS_URL
+        sync: false
+
+      # ── Security ────────────────────────────
+      - key: JWT_SECRET_KEY
+        generateValue: true   # Render auto-generates a secure random value
+      - key: FIELD_ENCRYPTION_KEY
+        sync: false           # Generate once: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+      # ── CORS / URLs ─────────────────────────
+      - key: CORS_ORIGINS
+        value: https://careremind.vercel.app
+      - key: FRONTEND_URL
+        value: https://careremind.vercel.app
+      - key: API_BASE_URL
+        fromService:
+          type: web
+          name: careremind-api
+          property: host
+
+      # ── DB Pool ─────────────────────────────
+      - key: DB_POOL_SIZE
+        value: "5"
+      - key: DB_MAX_OVERFLOW
+        value: "10"
+
+      # ── WhatsApp (Optional — set when key available) ──
+      - key: META_WHATSAPP_TOKEN
+        sync: false
+      - key: META_PHONE_NUMBER_ID
+        sync: false
+
+      # ── Vision AI (Optional) ─────────────────
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # ── Payments (Optional) ──────────────────
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_SECRET
+        sync: false
+
+  # ── Celery Worker ──────────────────────────────────────────────────────────
+  - type: worker
+    name: careremind-worker
+    runtime: docker
+    dockerfilePath: ./services/fastapi/Dockerfile
+    dockerContext: ./services/fastapi
+    startCommand: celery -A app.worker.celery_app worker --loglevel=info -Q careremind --concurrency=2
+    plan: free
+    autoDeploy: true
+
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: DATABASE_URL
+        sync: false
+      - key: UPSTASH_REDIS_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        fromService:
+          type: web
+          name: careremind-api
+          envVarKey: JWT_SECRET_KEY
+      - key: FIELD_ENCRYPTION_KEY
+        sync: false
+      - key: META_WHATSAPP_TOKEN
+        sync: false
+      - key: META_PHONE_NUMBER_ID
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

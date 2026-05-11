@@ -1,7 +1,7 @@
 """
 OCR Agent — Extracts patient data from photos of patient registers.
-Primary: NVIDIA Gemma-3-27b-it vision
-Fallback: OpenAI GPT-4o Mini vision
+Primary:  NVIDIA Gemma-3-27b-it (vision)
+Fallback: OpenAI GPT-5 (best-in-class VLM) — disabled in this build; enable by setting OPENAI_API_KEY in production.
 """
 
 import base64
@@ -35,6 +35,7 @@ Return ONLY a JSON array. Example:
 ]
 
 Rules:
+- If a date is written anywhere on the page (like at the top), apply that visit_date to ALL patients on that page
 - If you cannot read a field, set it to null
 - Phone numbers should be digits only, no +91 prefix
 - Dates in DD/MM/YYYY format
@@ -44,7 +45,8 @@ Rules:
 
 class OcrAgent:
     """Extracts patient data from register photos.
-    Primary: NVIDIA Gemma 3 | Fallback: OpenAI GPT-4o Mini
+    Primary: NVIDIA Gemma-3-27b-it Vision
+    Fallback: OpenAI GPT-5 (production) — requires OPENAI_API_KEY
     """
 
     @staticmethod
@@ -65,8 +67,9 @@ class OcrAgent:
         """
         Send image to NVIDIA vision model and parse structured patient data.
 
-        Primary VLM: NVIDIA meta/llama-3.2-11b-vision-instruct
-        Production fallback: OpenAI GPT-4o (see placeholder below — enable when OPENAI_API_KEY is set)
+        Primary VLM:  NVIDIA llama-3.2-11b-vision-instruct (free tier)
+        Fallback VLM: OpenAI GPT-5 — the best vision model for production accuracy.
+                      Disabled in this portfolio build — set OPENAI_API_KEY to enable.
 
         Returns:
             {
@@ -104,15 +107,21 @@ class OcrAgent:
             mime_type=mime_type,
         )
 
-        # ── Production Fallback: OpenAI GPT-4o ───────────────────────────
-        # Uncomment when OPENAI_API_KEY is configured in production.
+        # ── Production Fallback: OpenAI GPT-5 ─────────────────────────────
+        # GPT-5 is OpenAI's best-in-class vision model — highest accuracy for
+        # handwritten clinic registers in Indian languages.
+        #
+        # DISABLED in this portfolio build (no OPENAI_API_KEY configured).
+        # To enable in production, set OPENAI_API_KEY and uncomment below:
+        #
         # if not raw_response:
-        #     logger.warning("NVIDIA returned empty — falling back to OpenAI")
-        #     provider = "openai"
+        #     logger.warning("NVIDIA returned empty — falling back to OpenAI GPT-5")
+        #     provider = "openai-gpt-5"
         #     raw_response = await openai_service.vision(
         #         image_base64=image_b64,
         #         prompt="Extract all patient entries from this clinic register photo.",
         #         system=OCR_SYSTEM_PROMPT,
+        #         model="gpt-5",  # Switch to gpt-5 when available in API
         #     )
 
         if not raw_response:

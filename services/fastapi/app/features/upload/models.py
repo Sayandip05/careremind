@@ -28,7 +28,7 @@ class UploadLog(Base):
     total_rows = Column(Integer, nullable=False, default=0)
     duplicates_skipped = Column(Integer, nullable=False, default=0)
     failed_rows = Column(Integer, nullable=False, default=0)
-    status = Column(Enum(UploadStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=UploadStatus.PROCESSING)
+    status = Column(Enum(UploadStatus, values_callable=lambda x: [e.value for e in x], native_enum=False), nullable=False, default=UploadStatus.PROCESSING)
     storage_url = Column(String)
     extracted_data = Column(Text, nullable=True)  # JSON — extracted rows pending review
     created_at = Column(

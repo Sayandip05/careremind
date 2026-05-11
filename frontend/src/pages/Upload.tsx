@@ -11,6 +11,7 @@ interface ExtractedRow {
 
 interface ReviewRow extends ExtractedRow {
   _id: number;
+  _uploadId: string;
   _editing: boolean;
   _included: boolean;
 }
@@ -19,12 +20,15 @@ type Stage = 'idle' | 'uploading' | 'review' | 'confirming' | 'done' | 'error';
 
 export default function Upload() {
   const [stage, setStage] = useState<Stage>('idle');
-  const [uploadType, setUploadType] = useState<'excel' | 'photo'>('excel');
+  const [uploadType, setUploadType] = useState<'excel' | 'photo'>('photo');
   const [dragActive, setDragActive] = useState(false);
+  // True when a new photo is being processed while rows are already in the table
+  const [isAddingMore, setIsAddingMore] = useState(false);
 
   // Photo review state
-  const [uploadId, setUploadId] = useState('');
+
   const [reviewRows, setReviewRows] = useState<ReviewRow[]>([]);
+  const [bulkDate, setBulkDate] = useState('');
   const [extractionErrors, setExtractionErrors] = useState<string[]>([]);
   const [provider, setProvider] = useState('');
 
@@ -39,7 +43,15 @@ export default function Upload() {
   const handleFile = async (file: File) => {
     setErrorMsg('');
     setResult(null);
-    setStage('uploading');
+
+    // If rows already exist in the table, keep the review stage visible
+    // and just show a subtle inline spinner — don't wipe the table.
+    const addingToExisting = stage === 'review' && reviewRows.length > 0;
+    if (addingToExisting) {
+      setIsAddingMore(true);
+    } else {
+      setStage('uploading');
+    }
 
     try {
       if (uploadType === 'excel') {
@@ -56,33 +68,45 @@ export default function Upload() {
 
         if (data.status === 'failed') {
           setErrorMsg(data.errors?.join(' • ') || 'Image processing failed');
-          setStage('error');
+          if (!addingToExisting) setStage('error');
           return;
         }
 
         if (data.status === 'already_processed') {
-          setResult({ ...data, total_rows: data.total_extracted, new_patients: data.total_extracted });
-          setStage('done');
+          // If adding to existing table, just skip silently with a note
+          if (addingToExisting) {
+            setExtractionErrors(prev => [...prev, 'One photo was already processed — skipped duplicate.']);
+          } else {
+            setResult({ ...data, total_rows: data.total_extracted, new_patients: data.total_extracted });
+            setStage('done');
+          }
           return;
         }
 
-        // Pending review — show the review table
-        setUploadId(data.upload_id);
+        // Pending review — append rows to the table
         setProvider(data.provider || 'nvidia');
-        setExtractionErrors(data.errors || []);
-        setReviewRows(
-          (data.extracted_rows || []).map((row: ExtractedRow, i: number) => ({
-            ...row,
-            _id: i,
-            _editing: false,
-            _included: true,
-          }))
-        );
+        setExtractionErrors(prev => [...prev, ...(data.errors || [])]);
+
+        // Apply the current bulkDate to new rows if one is already set
+        const newRows = (data.extracted_rows || []).map((row: ExtractedRow, i: number) => ({
+          ...row,
+          _id: Date.now() + i,
+          _uploadId: data.upload_id,
+          _editing: false,
+          _included: true,
+          // Pre-fill visit_date from bulkDate if the AI didn't find one
+          visit_date: row.visit_date || bulkDate || null,
+        }));
+
+        setReviewRows(prev => [...prev, ...newRows]);
         setStage('review');
       }
     } catch (err: any) {
       setErrorMsg(err.response?.data?.detail || 'Upload failed');
-      setStage('error');
+      if (!addingToExisting) setStage('error');
+    } finally {
+      setIsAddingMore(false);
+      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
@@ -98,17 +122,51 @@ export default function Upload() {
     setReviewRows(rows => rows.map(r => r._id === id ? { ...r, [field]: value } : r));
 
   const handleConfirm = async () => {
-    const confirmed = reviewRows.filter(r => r._included).map(r => ({
-      name: r.name,
-      phone: r.phone,
-      visit_date: r.visit_date || null,
-      next_visit_date: r.next_visit_date || null,
-    }));
+    const includedRows = reviewRows.filter(r => r._included);
+
+    // Hard validation — every included patient must have a visit date
+    const missingDate = includedRows.filter(r => !r.visit_date);
+    if (missingDate.length > 0) {
+      setErrorMsg(
+        `${missingDate.length} patient${missingDate.length > 1 ? 's are' : ' is'} missing a visit date. Please fill in the date before saving.`
+      );
+      return;
+    }
+    
+    // Group confirmed rows by upload ID
+    const groupedByUpload: Record<string, any[]> = {};
+    for (const r of includedRows) {
+      if (!groupedByUpload[r._uploadId]) groupedByUpload[r._uploadId] = [];
+      groupedByUpload[r._uploadId].push({
+        name: r.name,
+        phone: r.phone,
+        visit_date: r.visit_date || null,
+        next_visit_date: null, // Removed from UI
+      });
+    }
 
     setStage('confirming');
     try {
-      const res = await uploadApi.confirmPhoto({ upload_id: uploadId, confirmed_rows: confirmed });
-      setResult(res.data);
+      const promises = Object.entries(groupedByUpload).map(([uid, rows]) => 
+        uploadApi.confirmPhoto({ upload_id: uid, confirmed_rows: rows })
+      );
+      
+      const responses = await Promise.all(promises);
+      
+      // Aggregate results from multiple uploads
+      const aggregated = responses.reduce((acc, res) => {
+        const d = res.data;
+        return {
+          status: 'completed',
+          total_rows: (acc.total_rows || 0) + (d.total_rows || 0),
+          new_patients: (acc.new_patients || 0) + (d.new_patients || 0),
+          duplicates: (acc.duplicates || 0) + (d.duplicates || 0),
+          skipped: (acc.skipped || 0) + (d.skipped || 0),
+          errors: [...(acc.errors || []), ...(d.errors || [])],
+        };
+      }, { total_rows: 0, new_patients: 0, duplicates: 0, skipped: 0, errors: [] });
+
+      setResult(aggregated);
       setStage('done');
     } catch (err: any) {
       setErrorMsg(err.response?.data?.detail || 'Save failed');
@@ -121,7 +179,9 @@ export default function Upload() {
     setResult(null);
     setErrorMsg('');
     setReviewRows([]);
-    setUploadId('');
+    setBulkDate('');
+    setExtractionErrors([]);
+    setIsAddingMore(false);
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -131,11 +191,12 @@ export default function Upload() {
   };
 
   const includedCount = reviewRows.filter(r => r._included).length;
+  const missingDateCount = reviewRows.filter(r => r._included && !r.visit_date).length;
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-6">
       <div>
         <h1 className="text-lg font-semibold text-slate-800">Upload</h1>
         <p className="text-sm text-slate-500 mt-0.5">Upload Excel sheets or photos of your patient register</p>
@@ -144,7 +205,7 @@ export default function Upload() {
       {/* Type Toggle — only when idle or after reset */}
       {(stage === 'idle' || stage === 'error') && (
         <div className="flex gap-2">
-          {(['excel', 'photo'] as const).map((type) => (
+          {(['photo', 'excel'] as const).map((type) => (
             <button
               key={type}
               onClick={() => setUploadType(type)}
@@ -161,16 +222,20 @@ export default function Upload() {
         </div>
       )}
 
-      {/* Drop Zone */}
-      {(stage === 'idle' || stage === 'error') && (
+      {/* Drop Zone — shown when idle, on error, or in review (to add more photos) */}
+      {(stage === 'idle' || stage === 'error' || stage === 'review') && (
         <div
           onDragEnter={handleDrag}
           onDragOver={handleDrag}
           onDragLeave={handleDrag}
           onDrop={(e) => { e.preventDefault(); setDragActive(false); if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]); }}
-          onClick={() => fileRef.current?.click()}
-          className={`cursor-pointer border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-            dragActive ? 'border-slate-400 bg-slate-50' : 'border-slate-200 hover:border-slate-300'
+          onClick={() => !isAddingMore && fileRef.current?.click()}
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            isAddingMore
+              ? 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-60'
+              : dragActive
+                ? 'border-slate-400 bg-slate-50 cursor-pointer'
+                : 'border-slate-200 hover:border-slate-300 cursor-pointer'
           }`}
         >
           <input
@@ -179,20 +244,33 @@ export default function Upload() {
             accept={uploadType === 'excel' ? '.xlsx,.xls' : 'image/*'}
             onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }}
             className="hidden"
+            disabled={isAddingMore}
           />
-          {uploadType === 'excel'
-            ? <UploadIcon className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-            : <Camera className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-          }
-          <p className="text-sm text-slate-600">
-            Drop your {uploadType === 'excel' ? '.xlsx file' : 'photo'} here, or{' '}
-            <span className="text-slate-900 font-medium">browse</span>
-          </p>
-          <p className="text-xs text-slate-400 mt-1">{uploadType === 'excel' ? 'Max 10 MB' : 'Max 20 MB'}</p>
+          {isAddingMore ? (
+            <>
+              <div className="w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin mx-auto mb-2" />
+              <p className="text-sm text-slate-500">AI is extracting from new photo…</p>
+              <p className="text-xs text-slate-400 mt-1">Your existing patients are safe above</p>
+            </>
+          ) : (
+            <>
+              {uploadType === 'excel'
+                ? <UploadIcon className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                : <Camera className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+              }
+              <p className="text-sm text-slate-600">
+                Drop your {uploadType === 'excel' ? '.xlsx file' : 'photo'} here, or{' '}
+                <span className="text-slate-900 font-medium">browse</span>
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {uploadType === 'excel' ? 'Max 10 MB' : (stage === 'review' ? 'Max 20 MB • Add more pages to the list above' : 'Max 20 MB')}
+              </p>
+            </>
+          )}
         </div>
       )}
 
-      {/* Uploading spinner */}
+      {/* Full-page uploading spinner — only shown when no rows exist yet */}
       {stage === 'uploading' && (
         <div className="border border-slate-200 rounded-lg p-10 text-center">
           <div className="w-7 h-7 border-2 border-slate-200 border-t-slate-700 rounded-full animate-spin mx-auto mb-3" />
@@ -237,9 +315,26 @@ export default function Upload() {
                 Review, edit, or remove rows before saving.
               </p>
             </div>
-            <button onClick={reset} className="text-xs text-slate-400 hover:text-slate-600">
-              Cancel
-            </button>
+            <div className="flex items-center gap-4">
+              {reviewRows.length > 0 && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-500">Set date for all:</span>
+                  <input
+                    type="date"
+                    className="border border-slate-200 rounded px-2 py-1 text-slate-700 bg-white"
+                    value={bulkDate}
+                    onChange={(e) => {
+                      const d = e.target.value;
+                      setBulkDate(d);
+                      setReviewRows(rows => rows.map(r => ({ ...r, visit_date: d })));
+                    }}
+                  />
+                </div>
+              )}
+              <button onClick={reset} className="text-xs text-slate-400 hover:text-slate-600">
+                Cancel
+              </button>
+            </div>
           </div>
 
           {extractionErrors.length > 0 && (
@@ -263,7 +358,6 @@ export default function Upload() {
                     <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Name</th>
                     <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Phone</th>
                     <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Visit Date</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Next Visit</th>
                     <th className="px-3 py-2 w-8"></th>
                   </tr>
                 </thead>
@@ -307,14 +401,19 @@ export default function Upload() {
                         />
                       </td>
 
-                      {/* Visit date */}
-                      <td className="px-3 py-2 text-xs text-slate-500">
-                        {row.visit_date || '—'}
-                      </td>
-
-                      {/* Next visit */}
-                      <td className="px-3 py-2 text-xs text-slate-500">
-                        {row.next_visit_date || '—'}
+                      {/* Visit date — required, highlighted red if missing */}
+                      <td className="px-3 py-2 text-xs">
+                        <input
+                          type="date"
+                          className={`w-full bg-transparent outline-none rounded px-1 ${
+                            row._included && !row.visit_date
+                              ? 'border border-red-300 bg-red-50 text-red-700 placeholder-red-300'
+                              : 'text-slate-600 focus:bg-slate-50'
+                          }`}
+                          value={row.visit_date || ''}
+                          onChange={(e) => updateRow(row._id, 'visit_date', e.target.value)}
+                          disabled={!row._included}
+                        />
                       </td>
 
                       {/* Delete */}
@@ -334,24 +433,34 @@ export default function Upload() {
           )}
 
           {/* Confirm bar */}
-          <div className="flex items-center justify-between pt-1">
-            <p className="text-xs text-slate-400">
-              {includedCount} of {reviewRows.length} rows selected
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={reset}
-                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-              >
-                Discard
-              </button>
-              <button
-                onClick={handleConfirm}
-                disabled={includedCount === 0}
-                className="px-4 py-1.5 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Save {includedCount} Patient{includedCount !== 1 ? 's' : ''}
-              </button>
+          <div className="space-y-2 pt-1">
+            {missingDateCount > 0 && (
+              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  <strong>{missingDateCount} patient{missingDateCount > 1 ? 's' : ''}</strong> {missingDateCount > 1 ? 'are' : 'is'} missing a visit date — use "Set date for all" above or fill individually.
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-slate-400">
+                {includedCount} of {reviewRows.length} rows selected
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={reset}
+                  className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                >
+                  Discard
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  disabled={includedCount === 0 || missingDateCount > 0}
+                  className="px-4 py-1.5 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Save {includedCount} Patient{includedCount !== 1 ? 's' : ''}
+                </button>
+              </div>
             </div>
           </div>
         </div>

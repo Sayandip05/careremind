@@ -1,6 +1,12 @@
 """
-OpenAI Service — Uses GPT-4o Mini for OCR text extraction
-and structured data parsing from images.
+OpenAI Service — Production fallback VLM for OCR and structured data extraction.
+
+Configured for GPT-5 (OpenAI's best-in-class vision model) for maximum accuracy
+on handwritten clinic registers in Indian languages.
+
+DISABLED in this portfolio build — OPENAI_API_KEY is not configured.
+To enable in production: set OPENAI_API_KEY in environment variables.
+
 Includes automatic retry with exponential backoff for transient failures.
 """
 
@@ -30,12 +36,20 @@ def set_http_client(client: httpx.AsyncClient):
 
 
 class OpenAIService:
-    """Wrapper for OpenAI ChatCompletion API with vision support."""
+    """
+    Wrapper for OpenAI ChatCompletion API with vision support.
+
+    Production fallback for CareRemind's OCR pipeline.
+    Uses GPT-5 — OpenAI's most capable vision model — for extracting
+    patient data from handwritten/printed clinic register photos.
+    """
 
     def __init__(self):
         self.api_key = settings.OPENAI_API_KEY
         self.api_url = settings.OPENAI_API_URL
-        self.model = "gpt-4o-mini"
+        # GPT-5: OpenAI's best-in-class VLM — update to exact model name when GA.
+        # Ref: https://platform.openai.com/docs/models
+        self.model = "gpt-5"
 
     async def chat(self, prompt: str, system: str = "") -> str:
         """Send a text-only prompt. Returns assistant's response text."""
@@ -45,8 +59,13 @@ class OpenAIService:
         messages.append({"role": "user", "content": prompt})
         return await self._request(messages)
 
-    async def vision(self, image_base64: str, prompt: str, system: str = "") -> str:
-        """Send an image + prompt to GPT-4o Mini vision. Returns assistant's response text."""
+    async def vision(self, image_base64: str, prompt: str, system: str = "", model: str | None = None) -> str:
+        """
+        Send an image + prompt to OpenAI GPT-5 vision.
+        Returns assistant's response text.
+
+        `model` param allows overriding the default (e.g. for testing gpt-4o-mini).
+        """
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
@@ -62,7 +81,7 @@ class OpenAIService:
                 },
             ],
         })
-        return await self._request(messages)
+        return await self._request(messages, model=model)
 
     @retry(
         stop=stop_after_attempt(3),
@@ -71,10 +90,10 @@ class OpenAIService:
         before_sleep=before_sleep_log(logger, logging.WARNING),
         reraise=True,
     )
-    async def _request(self, messages: list[dict]) -> str:
-        """Make a ChatCompletion API call."""
+    async def _request(self, messages: list[dict], model: str | None = None) -> str:
+        """Make a ChatCompletion API call. Falls back to self.model if model not specified."""
         if not self.api_key:
-            logger.warning("OPENAI_API_KEY not set — returning empty response")
+            logger.warning("OPENAI_API_KEY not set — GPT-5 fallback disabled in this build")
             return ""
 
         headers = {
@@ -82,7 +101,7 @@ class OpenAIService:
             "Content-Type": "application/json",
         }
         payload = {
-            "model": self.model,
+            "model": model or self.model,
             "messages": messages,
             "max_tokens": 1024,
         }

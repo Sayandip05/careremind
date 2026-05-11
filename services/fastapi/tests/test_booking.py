@@ -32,10 +32,11 @@ async def test_get_available_slots(
         "pincode": "400001",
     }
     clinic_response = await client.post(
-        "/api/v1/clinics",
+        "/api/v1/clinics/",
         json=clinic_data,
         headers={"Authorization": f"Bearer {token}"}
     )
+    assert clinic_response.status_code == 201, f"Clinic creation failed: {clinic_response.text}"
     clinic_id = clinic_response.json()["id"]
     
     # Get slots for tomorrow

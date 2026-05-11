@@ -1,34 +1,43 @@
 version: '3.8'
 
-# ── CareRemind Dev Compose ────────────────────────────────────
-# All Python services build from the SAME image (services/fastapi).
-# This is the correct modular monolith layout:
-#   - api     → uvicorn with --reload (hot reload for development)
-#   - worker  → celery worker (consumes background tasks from Upstash Redis)
+# ── CareRemind — Single Compose File ─────────────────────────────────────────
 #
-# Redis:     Upstash (external, TLS) — no local redis container needed.
-# Postgres:  Supabase in production; local postgres:15 for dev convenience.
-# Scheduler: runs embedded inside the FastAPI lifespan (APScheduler).
+# Deployment target : Render (render.com)
+# Database          : Supabase (external PostgreSQL) — no postgres container
+# Cache / Queue     : Upstash Redis (external, TLS)  — no redis container
+# Frontend          : Vercel (static deploy)          — no nginx container
+# Scheduler         : APScheduler embedded inside FastAPI lifespan
+#
+# Both services build from the SAME Dockerfile (services/fastapi).
+# Scale path: add more api replicas + PgBouncer for 2000+ concurrent doctors.
 
 services:
+
+  # ── FastAPI (REST + WebSocket + APScheduler) ────────────────────────────────
   api:
     build: ./services/fastapi
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    restart: always
     ports:
       - "8000:8000"
     env_file:
       - .env
     environment:
-      - DB_POOL_SIZE=10
-      - DB_MAX_OVERFLOW=20
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./services/fastapi:/app
+      - ENVIRONMENT=production
+      # Gunicorn workers: set via WEB_CONCURRENCY env var on Render dashboard
+      # 4 workers × 15 DB connections = 60 pool connections → handles ~800 doctors
+      - DB_POOL_SIZE=15
+      - DB_MAX_OVERFLOW=15
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
+  # ── Celery Worker (background tasks: reminders, summaries, cleanup) ─────────
   worker:
-    build: ./services/fastapi  # Same image as api — no separate Dockerfile needed
+    build: ./services/fastapi   # Same image as api — no separate Dockerfile needed
+    restart: always
     command:
       - "celery"
       - "-A"
@@ -36,33 +45,15 @@ services:
       - "worker"
       - "--loglevel=info"
       - "-Q"
-      - "careremind"                    # Consume only from the isolated queue
-      - "--max-tasks-per-child=1000"    # Prevent memory leaks in long-running workers
+      - "careremind"            # Consume only from the isolated queue
+      - "--concurrency=4"
+      - "--max-tasks-per-child=1000"   # Prevent memory leaks in long-running workers
     env_file:
       - .env
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./services/fastapi:/app         # Shares code with api
-
-  # Frontend deploys to Vercel — no container needed.
-
-  postgres:
-    image: postgres:15
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: careremind
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d careremind"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - ENVIRONMENT=production
 
-volumes:
-  postgres_data:
+  # ── NOT included (external / separate deploy) ───────────────────────────────
+  # postgres  → Supabase  (set DATABASE_URL in .env / Render env vars)
+  # redis     → Upstash   (set REDIS_URL in .env / Render env vars)
+  # frontend  → Vercel    (cd frontend && vercel deploy)

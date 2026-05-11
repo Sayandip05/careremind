@@ -1,15 +1,107 @@
-name: CI
+name: CI — Test & Lint
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main", "develop"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  build:
+  test:
+    name: Unit Tests (pytest)
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: services/fastapi
+
+    env:
+      TESTING: "true"
+      DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+      UPSTASH_REDIS_URL: "redis://localhost:6379"
+      JWT_SECRET_KEY: "ci-test-secret-key-minimum-32-chars-long"
+      FIELD_ENCRYPTION_KEY: "dGVzdC1rZXktMzItYnl0ZXMtbG9uZy1mb3ItY2k="
+      SUPABASE_URL: "https://placeholder.supabase.co"
+      SUPABASE_KEY: "placeholder"
+      ENVIRONMENT: "testing"
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Placeholder CI
-        run: echo "CI pipeline placeholder"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: services/fastapi/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ \
+            --ignore=tests/test_e2e.py \
+            -v \
+            --tb=short \
+            -q
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: services/fastapi/.pytest_cache
+
+  lint:
+    name: Lint (Ruff)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: services/fastapi
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: services/fastapi/requirements.txt
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Ruff check
+        run: ruff check app/ --ignore E501,F401
+
+  frontend-build:
+    name: Frontend Build Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        env:
+          VITE_API_URL: "https://careremind-api.onrender.com"
+        run: npm run build

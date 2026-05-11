@@ -1,42 +1,106 @@
-import { ChevronDown, Clock, Leaf, Plus, Shapes, BellRing, Calendar, TrendingDown, Menu, ArrowRight, Check, Loader2, LayoutDashboard, Users, MessageSquare, Upload, Settings, BarChart3, Smartphone, CreditCard, FileText } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ChevronDown, Clock, Leaf, Plus, Shapes, BellRing, Calendar, TrendingDown, Menu, X, ArrowRight, Check, Loader2, LayoutDashboard, Users, MessageSquare, Upload, Settings, BarChart3, Smartphone, CreditCard, FileText } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import { Hero45 } from '@/components/blocks/shadcnblocks-com-hero45';
 import { PricingSectionDemo } from '@/components/blocks/pricing-section-demo';
 import { FooterDemo } from '@/components/blocks/footer-demo';
 import { QnASection } from '@/components/blocks/qna-section';
 
 export default function Landing() {
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMobileMenuOpen(false);
+  }, []);
+
+  const closeMenu = useCallback(() => setMobileMenuOpen(false), []);
+
   return (
-    <div className="bg-gradient-to-b from-[#e6ffe6] to-[#f0fff0] text-slate-900 font-display min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300">
+    <div className="bg-gradient-to-b from-[#e6ffe6] to-[#f0fff0] text-slate-900 font-display min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300" style={{ paddingTop: '80px' }}>
       {/* Abstract Background Shapes */}
       <div className="absolute z-0 pointer-events-none rounded-full blur-[60px] w-[500px] h-[500px] top-[10%] left-[-10%] -rotate-[15deg]" style={{ background: 'linear-gradient(135deg, rgba(74, 222, 128, 0.4) 0%, rgba(21, 128, 61, 0.3) 100%)' }}></div>
       <div className="absolute z-0 pointer-events-none rounded-full blur-[60px] w-[600px] h-[300px] bottom-[20%] right-[-10%] rotate-[30deg]" style={{ background: 'linear-gradient(135deg, rgba(74, 222, 128, 0.3) 0%, rgba(21, 128, 61, 0.2) 100%)' }}></div>
       <div className="absolute z-0 pointer-events-none rounded-full blur-[60px] w-[400px] h-[400px] top-[30%] left-[40%]" style={{ background: 'linear-gradient(135deg, rgba(21, 128, 61, 0.2) 0%, rgba(74, 222, 128, 0.1) 100%)' }}></div>
 
-      {/* Header */}
-      <header className="w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between relative z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#1E5F3A] rounded-lg flex items-center justify-center text-white">
-            <BellRing className="w-5 h-5" />
-          </div>
-          <span className="text-xl font-bold text-[#1E5F3A]">CareRemind</span>
-        </div>
-        
-        <nav className="hidden md:flex items-center gap-8">
-          <a className="font-medium hover:text-primary transition-colors" href="#how-it-works">How It Works</a>
-          <a className="font-medium hover:text-primary transition-colors" href="#features">Features</a>
-          <a className="font-medium hover:text-primary transition-colors" href="#pricing">Pricing</a>
-          <a className="font-medium hover:text-primary transition-colors" href="#faq">Contact</a>
-        </nav>
-
-        <div className="flex items-center gap-4">
-          <a className="hidden md:inline-flex items-center justify-center px-6 py-2.5 bg-primary text-white font-medium rounded hover:bg-green-700 transition-colors" href="/login">
-            Start Free Trial
-          </a>
-          <button className="md:hidden p-2 text-slate-600 hover:text-slate-900">
-            <Menu className="w-6 h-6" />
+      {/* ── Fixed Navbar ──────────────────────────────────────── */}
+      <header
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          transition: 'background 0.3s ease, box-shadow 0.3s ease',
+          background: scrolled ? 'rgba(240, 255, 240, 0.85)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(12px)' : 'none',
+          WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
+          boxShadow: scrolled ? '0 1px 20px rgba(0,0,0,0.06)' : 'none',
+          borderBottom: scrolled ? '1px solid rgba(30, 95, 58, 0.08)' : '1px solid transparent',
+        }}
+      >
+        <div className="w-full max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          {/* Brand — scrolls to top */}
+          <button
+            onClick={scrollToTop}
+            aria-label="Scroll to top of page"
+            className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E5F3A] focus-visible:ring-offset-2 rounded-md"
+          >
+            <div className="w-8 h-8 bg-[#1E5F3A] rounded-lg flex items-center justify-center text-white">
+              <BellRing className="w-5 h-5" />
+            </div>
+            <span className="text-xl font-bold text-[#1E5F3A]">CareRemind</span>
           </button>
+
+          {/* Desktop nav links */}
+          <nav className="hidden md:flex items-center gap-8">
+            <a className="font-medium text-slate-700 hover:text-[#1E5F3A] transition-colors" href="#how-it-works">How It Works</a>
+            <a className="font-medium text-slate-700 hover:text-[#1E5F3A] transition-colors" href="#features">Features</a>
+            <a className="font-medium text-slate-700 hover:text-[#1E5F3A] transition-colors" href="#pricing">Pricing</a>
+            <a className="font-medium text-slate-700 hover:text-[#1E5F3A] transition-colors" href="#faq">Contact</a>
+          </nav>
+
+          {/* CTA + mobile hamburger */}
+          <div className="flex items-center gap-3">
+            <a
+              className="hidden md:inline-flex items-center justify-center px-6 py-2.5 bg-[#1E5F3A] text-white font-medium rounded-lg hover:bg-[#15472B] transition-colors"
+              href="/login"
+            >
+              Start Free Trial
+            </a>
+            <button
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+              className="md:hidden p-2 text-slate-600 hover:text-slate-900 rounded-md hover:bg-white/50 transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-[#1E5F3A]/10 bg-[#f0fff0]/95 backdrop-blur-md px-6 py-4 flex flex-col gap-4">
+            <a onClick={closeMenu} className="font-medium text-slate-700 hover:text-[#1E5F3A] py-1" href="#how-it-works">How It Works</a>
+            <a onClick={closeMenu} className="font-medium text-slate-700 hover:text-[#1E5F3A] py-1" href="#features">Features</a>
+            <a onClick={closeMenu} className="font-medium text-slate-700 hover:text-[#1E5F3A] py-1" href="#pricing">Pricing</a>
+            <a onClick={closeMenu} className="font-medium text-slate-700 hover:text-[#1E5F3A] py-1" href="#faq">Contact</a>
+            <a
+              onClick={closeMenu}
+              href="/login"
+              className="mt-2 inline-flex items-center justify-center px-6 py-2.5 bg-[#1E5F3A] text-white font-medium rounded-lg hover:bg-[#15472B] transition-colors"
+            >
+              Start Free Trial
+            </a>
+          </div>
+        )}
       </header>
 
       {/* Main Hero Content */}
@@ -286,8 +350,8 @@ export default function Landing() {
 
           <div className="relative w-full aspect-video rounded-[32px] overflow-hidden shadow-2xl group cursor-pointer">
             <img 
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop" 
-              alt="Video thumbnail showing working procedure" 
+              src="/images/doctor-whatsapp.jpg"
+              alt="Doctor using CareRemind WhatsApp AI assistant for patient reminders" 
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors duration-300"></div>

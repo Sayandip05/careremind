@@ -335,6 +335,7 @@ async def _handle_optout(phone_raw: str, db: AsyncSession):
         patient.is_optout = True
 
     patient_ids = [p.id for p in patients]
+    appt_ids: list = []  # initialise before conditional — avoids UnboundLocalError
     if patient_ids:
         from app.features.appointments.models import Appointment
 
@@ -358,7 +359,7 @@ async def _handle_optout(phone_raw: str, db: AsyncSession):
         "Patient opt-out processed: phone=...%s, patients_affected=%d, reminders_cancelled=%d",
         phone[-4:],
         len(patients),
-        len(appt_ids) if appt_ids else 0
+        len(appt_ids),
     )
 
 

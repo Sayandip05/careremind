@@ -1,5 +1,6 @@
 import time
 import logging
+import os
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -8,8 +9,15 @@ from app.core.cache import cache
 
 logger = logging.getLogger("careremind.ratelimit")
 
+_TESTING = os.getenv("TESTING", "").lower() in ("1", "true", "yes")
+
+
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Bypass rate limiting entirely in test environment
+        if _TESTING:
+            return await call_next(request)
+
         client_ip = request.client.host if request.client else "127.0.0.1"
         target_path = request.url.path
         
