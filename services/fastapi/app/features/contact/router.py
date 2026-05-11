@@ -2,6 +2,7 @@
 Contact form endpoint — public, no auth required.
 Stores inquiries and can optionally forward to email.
 """
+
 import logging
 from datetime import datetime, timezone
 

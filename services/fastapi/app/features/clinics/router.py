@@ -59,7 +59,7 @@ async def create_clinic(
 ):
     """
     Create a new clinic location.
-    
+
     Doctors can have multiple clinics (e.g., "City Clinic", "Morning Clinic").
     """
     try:
@@ -142,7 +142,7 @@ async def delete_clinic(
     """
     Delete (deactivate) a clinic location.
     IDOR protected — only the owning doctor can delete.
-    
+
     Note: This performs a soft delete by setting is_active=False.
     """
     try:

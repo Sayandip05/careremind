@@ -135,7 +135,9 @@ async def try_whatsapp_node(state: NotificationState) -> dict:
 
     if not whatsapp_service.is_configured:
         reminder.status = ReminderStatus.FAILED
-        reminder.error_log = "WhatsApp not configured — set META_WHATSAPP_TOKEN and META_PHONE_NUMBER_ID"
+        reminder.error_log = (
+            "WhatsApp not configured — set META_WHATSAPP_TOKEN and META_PHONE_NUMBER_ID"
+        )
         reminder.retry_count += 1
         await db.flush()
         logger.warning("WhatsApp not configured for reminder %s", reminder.id)

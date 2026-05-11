@@ -22,6 +22,7 @@ from pwdlib import PasswordHash
 
 password_hash = PasswordHash.recommended()
 
+
 # ── Passwords ────────────────────────────────────────────────
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against its hashed version."""
@@ -46,7 +47,9 @@ def create_access_token(tenant_id: str, email: str) -> str:
         "exp": expire,
         "iat": datetime.now(timezone.utc),
     }
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(
+        payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
 
 
 def verify_access_token(token: str) -> dict:
@@ -76,7 +79,7 @@ def verify_access_token(token: str) -> dict:
 # ── Field Encryption (Patient PII) ──────────────────────────
 class EncryptionService:
     """AES-256 encryption for sensitive patient fields (phone numbers, notes).
-    
+
     Uses Fernet for encryption (non-deterministic) and HMAC-SHA256 for hashing (deterministic).
     Hash is used for deduplication lookups, encryption for secure storage.
     """
@@ -114,16 +117,14 @@ class EncryptionService:
 
     def hash_phone(self, phone: str) -> str:
         """Create deterministic HMAC-SHA256 hash of phone number for dedup.
-        
+
         Same phone number always produces the same hash (deterministic).
         Uses FIELD_ENCRYPTION_KEY as the HMAC key for security.
         """
         # Normalize phone before hashing (remove spaces, consistent format)
         normalized = phone.strip().replace(" ", "").replace("-", "")
         return hmac.HMAC(
-            self._hash_key,
-            normalized.encode(),
-            hashlib.sha256
+            self._hash_key, normalized.encode(), hashlib.sha256
         ).hexdigest()
 
 

@@ -11,6 +11,7 @@ from app.core.config import settings
 
 logger = logging.getLogger("careremind.email")
 
+
 class EmailService:
     def __init__(self):
         # We assume standard SMTP config in settings, or mock if missing
@@ -20,9 +21,13 @@ class EmailService:
         self.password = getattr(settings, "SMTP_PASSWORD", "")
         self.from_email = getattr(settings, "SMTP_FROM_EMAIL", "noreply@careremind.com")
 
-    async def send_email(self, to_email: str, subject: str, content: str, is_html: bool = False):
+    async def send_email(
+        self, to_email: str, subject: str, content: str, is_html: bool = False
+    ):
         if not self.username or not self.password:
-            logger.warning("SMTP credentials missing. Mocking email send to %s", to_email)
+            logger.warning(
+                "SMTP credentials missing. Mocking email send to %s", to_email
+            )
             logger.debug("Mock Email Subj: %s\nContent: %s", subject, content)
             return
 
@@ -30,10 +35,10 @@ class EmailService:
         message["From"] = self.from_email
         message["To"] = to_email
         message["Subject"] = subject
-        
+
         if is_html:
             message.set_content("Please enable HTML to view this email.")
-            message.add_alternative(content, subtype='html')
+            message.add_alternative(content, subtype="html")
         else:
             message.set_content(content)
 

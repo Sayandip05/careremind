@@ -39,7 +39,7 @@ class NotificationService:
                     operation="notification",
                 ),
                 "tags": get_langsmith_tags("notification", "reminder"),
-            }
+            },
         )
 
         return {

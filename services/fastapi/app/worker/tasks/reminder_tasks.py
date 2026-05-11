@@ -46,10 +46,13 @@ async def _send_pending():
         try:
             now = datetime.now(timezone.utc)
             result = await db.execute(
-                select(Reminder).where(
+                select(Reminder)
+                .where(
                     Reminder.status == ReminderStatus.PENDING,
                     Reminder.scheduled_at <= now,
-                ).order_by(Reminder.scheduled_at).limit(500)
+                )
+                .order_by(Reminder.scheduled_at)
+                .limit(500)
             )
             reminders = result.scalars().all()
 
@@ -110,10 +113,12 @@ async def _retry_failed():
     async with async_session() as db:
         try:
             result = await db.execute(
-                select(Reminder).where(
+                select(Reminder)
+                .where(
                     Reminder.status == ReminderStatus.FAILED,
                     Reminder.retry_count < 2,
-                ).limit(200)
+                )
+                .limit(200)
             )
             reminders = result.scalars().all()
 
@@ -130,9 +135,7 @@ async def _retry_failed():
                     logger.error("Retry error for %s: %s", reminder.id, e)
 
             await db.commit()
-            logger.info(
-                "Retried %d of %d failed reminders", retried, len(reminders)
-            )
+            logger.info("Retried %d of %d failed reminders", retried, len(reminders))
             return {"retried": retried, "total_failed": len(reminders)}
         except Exception as e:
             await db.rollback()

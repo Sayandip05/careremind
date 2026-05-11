@@ -72,7 +72,7 @@ async def create_appointment(
             appointment.id,
             appointment.patient_id,
             appointment.visit_date,
-            appointment.next_visit_date
+            appointment.next_visit_date,
         )
         return appointment
     except HTTPException:

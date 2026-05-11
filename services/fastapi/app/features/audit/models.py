@@ -25,4 +25,6 @@ class AuditLog(Base):
     # Use JSON for SQLite compatibility, JSONB for PostgreSQL performance
     old_value = Column(JSON().with_variant(JSONB, "postgresql"))
     new_value = Column(JSON().with_variant(JSONB, "postgresql"))
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

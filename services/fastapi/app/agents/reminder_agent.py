@@ -43,7 +43,7 @@ class ReminderAgent:
                     specialty=tenant.specialty,
                 ),
                 "tags": get_langsmith_tags("scheduling", tenant.specialty or "general"),
-            }
+            },
         )
 
         return result.get("created_reminders", [])

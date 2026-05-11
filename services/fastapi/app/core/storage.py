@@ -29,11 +29,15 @@ class StorageService:
 
         if settings.SUPABASE_URL and settings.SUPABASE_KEY:
             return await self._save_supabase(unique_name, data)
-            
+
         if settings.is_production:
-            logger.critical("FATAL: Supabase keys missing in production. Refusing stateless local upload.")
-            raise RuntimeError("Storage backend not configured for production. Refusing data loss risk.")
-            
+            logger.critical(
+                "FATAL: Supabase keys missing in production. Refusing stateless local upload."
+            )
+            raise RuntimeError(
+                "Storage backend not configured for production. Refusing data loss risk."
+            )
+
         return self._save_local(unique_name, data)
 
     async def _save_supabase(self, path: str, data: bytes) -> str:
@@ -57,7 +61,9 @@ class StorageService:
                 # Fall back to local
                 return self._save_local(path, data)
 
-        public_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/{self.BUCKET}/{path}"
+        public_url = (
+            f"{settings.SUPABASE_URL}/storage/v1/object/public/{self.BUCKET}/{path}"
+        )
         logger.info("File uploaded to Supabase: %s", public_url)
         return public_url
 

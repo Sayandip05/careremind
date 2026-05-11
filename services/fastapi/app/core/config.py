@@ -44,13 +44,13 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "change-me-in-production-minimum-32-chars"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 24
-    
+
     # ── Social OAuth Logins ──────────────────────────────────
     ENABLE_GOOGLE_OAUTH: bool = False
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = ""
-    
+
     ENABLE_FACEBOOK_OAUTH: bool = False
     FACEBOOK_CLIENT_ID: str = ""
     FACEBOOK_CLIENT_SECRET: str = ""
@@ -68,7 +68,6 @@ class Settings(BaseSettings):
     META_WHATSAPP_TOKEN: str = ""
     META_PHONE_NUMBER_ID: str = ""
     META_WHATSAPP_API_VERSION: str = "v21.0"
-
 
     # ── Vision OCR ───────────────────────────────────────────
     VISION_BACKEND: str = "nvidia"  # nvidia | openai | textract
@@ -96,12 +95,14 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:5173"  # Vite dev server
 
     # ── CORS ─────────────────────────────────────────────────
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:3002"
+    CORS_ORIGINS: str = (
+        "http://localhost:5173,http://localhost:3000,http://localhost:3002"
+    )
 
     # ── Monitoring ───────────────────────────────────────────
     ENABLE_SENTRY: bool = False
     SENTRY_DSN: str = ""
-    
+
     # ── LangSmith (Agent Tracing & Monitoring) ───────────────
     ENABLE_LANGSMITH: bool = False
     LANGSMITH_API_KEY: str = ""
@@ -120,16 +121,18 @@ class Settings(BaseSettings):
     HTTP_TIMEOUT_LONG: int = 90  # For AI/OCR requests
     HTTP_MAX_CONNECTIONS: int = 100
     HTTP_MAX_KEEPALIVE: int = 20
-    
+
     # ── Request Timeouts (seconds) ───────────────────────────
-    REQUEST_TIMEOUT_DEFAULT: int = 60   # Normal API requests
-    REQUEST_TIMEOUT_UPLOAD: int = 120   # File uploads (Excel/Photo)
-    REQUEST_TIMEOUT_HEALTH: int = 5     # Health checks
+    REQUEST_TIMEOUT_DEFAULT: int = 60  # Normal API requests
+    REQUEST_TIMEOUT_UPLOAD: int = 120  # File uploads (Excel/Photo)
+    REQUEST_TIMEOUT_HEALTH: int = 5  # Health checks
 
     @property
     def cors_origin_list(self) -> list[str]:
         """Parse comma-separated CORS origins into a list."""
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        return [
+            origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()
+        ]
 
     @property
     def is_production(self) -> bool:
@@ -140,7 +143,11 @@ class Settings(BaseSettings):
         """True when the configured Redis URL uses TLS (rediss://)."""
         return self.UPSTASH_REDIS_URL.startswith("rediss://")
 
-    model_config = {"env_file": str(_ENV_FILE), "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {
+        "env_file": str(_ENV_FILE),
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
 
 settings = Settings()

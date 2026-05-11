@@ -10,7 +10,12 @@ from app.features.upload.models import UploadLog, UploadStatus
 from app.features.audit.models import AuditLog
 from app.features.billing.models import Payment
 from app.features.clinics.models import ClinicLocation
-from app.features.booking.models import Booking, BookingStatus, PaymentStatus, DailySchedule
+from app.features.booking.models import (
+    Booking,
+    BookingStatus,
+    PaymentStatus,
+    DailySchedule,
+)
 
 __all__ = [
     "Tenant",

@@ -30,7 +30,9 @@ async def resolve_specialty_node(state: SchedulingState) -> dict:
             "specialty_name": "unknown",
         }
 
-    specialty_name = getattr(appointment, "specialty_override", None) or tenant.specialty
+    specialty_name = (
+        getattr(appointment, "specialty_override", None) or tenant.specialty
+    )
     specialty = get_specialty(specialty_name)
     timings = specialty.get_reminder_timing()
 
@@ -64,7 +66,8 @@ async def create_reminders_node(state: SchedulingState) -> dict:
         if scheduled_at < datetime.now(timezone.utc):
             logger.info(
                 "Skipping past reminder: %s for appointment %s",
-                timing.label, appointment.id,
+                timing.label,
+                appointment.id,
             )
             skipped += 1
             continue
@@ -78,7 +81,9 @@ async def create_reminders_node(state: SchedulingState) -> dict:
             )
         )
         if existing.scalar_one_or_none():
-            logger.info("Reminder already exists for %s at %s", appointment.id, scheduled_at)
+            logger.info(
+                "Reminder already exists for %s at %s", appointment.id, scheduled_at
+            )
             skipped += 1
             continue
 
@@ -101,7 +106,8 @@ async def create_reminders_node(state: SchedulingState) -> dict:
     specialty = state.get("specialty")
     logger.info(
         "Created %d reminders for appointment %s (%s — %s)",
-        len(created), appointment.id,
+        len(created),
+        appointment.id,
         specialty.get_specialty_name() if specialty else "unknown",
         ", ".join(t.label for t in timings),
     )

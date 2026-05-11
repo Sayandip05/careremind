@@ -25,9 +25,7 @@ async def create_appointment(
     IDOR protection: verifies the patient_id belongs to the requesting tenant.
     """
     # Ownership check — the golden rule
-    result = await db.execute(
-        select(Patient).where(Patient.id == data.patient_id)
-    )
+    result = await db.execute(select(Patient).where(Patient.id == data.patient_id))
     patient = result.scalar_one_or_none()
 
     if not patient:
@@ -63,7 +61,9 @@ async def list_appointments(
     Optionally filtered by patient_id.
     """
     base_query = select(Appointment).where(Appointment.tenant_id == tenant_id)
-    count_query = select(func.count(Appointment.id)).where(Appointment.tenant_id == tenant_id)
+    count_query = select(func.count(Appointment.id)).where(
+        Appointment.tenant_id == tenant_id
+    )
 
     if patient_id:
         base_query = base_query.where(Appointment.patient_id == patient_id)
@@ -76,8 +76,7 @@ async def list_appointments(
     # Fetch page
     offset = (page - 1) * per_page
     result = await db.execute(
-        base_query
-        .order_by(Appointment.created_at.desc())
+        base_query.order_by(Appointment.created_at.desc())
         .offset(offset)
         .limit(per_page)
     )

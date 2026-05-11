@@ -1,7 +1,19 @@
 import uuid
 import enum
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Time, Date, UniqueConstraint, Index
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Time,
+    Date,
+    UniqueConstraint,
+    Index,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -26,62 +38,88 @@ class PaymentStatus(str, enum.Enum):
 class Booking(Base):
     """
     Patient booking model - stores appointment bookings made via WhatsApp.
-    
+
     Flow:
     1. Patient taps "Book Next Visit" in reminder
     2. Selects slot → status=RESERVED (10-min expiry)
     3. Completes payment → status=CONFIRMED
     4. At midnight → assigned serial_number
     5. After visit → status=COMPLETED
-    
+
     Race Condition Protection:
     - Partial unique constraint prevents double-booking
     - Only applies to RESERVED and CONFIRMED statuses
     - Allows multiple CANCELLED/COMPLETED bookings for same slot
     """
+
     __tablename__ = "bookings"
-    
+
     # Prevent double-booking: Only 1 active booking per slot
     __table_args__ = (
         # Partial unique index (PostgreSQL only)
         Index(
-            'idx_unique_active_slot',
-            'clinic_location_id',
-            'booking_date',
-            'slot_time',
+            "idx_unique_active_slot",
+            "clinic_location_id",
+            "booking_date",
+            "slot_time",
             unique=True,
-            postgresql_where="status IN ('reserved', 'confirmed')"
+            postgresql_where="status IN ('reserved', 'confirmed')",
         ),
     )
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True)
-    appointment_id = Column(String, ForeignKey("appointments.id", ondelete="SET NULL"), nullable=True)
-    clinic_location_id = Column(String, ForeignKey("clinic_locations.id", ondelete="CASCADE"), nullable=False, index=True)
-    
+    tenant_id = Column(
+        String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    patient_id = Column(
+        String,
+        ForeignKey("patients.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    appointment_id = Column(
+        String, ForeignKey("appointments.id", ondelete="SET NULL"), nullable=True
+    )
+    clinic_location_id = Column(
+        String,
+        ForeignKey("clinic_locations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     # Booking details
     booking_date = Column(Date, nullable=False, index=True)
     slot_time = Column(Time, nullable=False)
     serial_number = Column(Integer)  # Assigned at midnight
-    
+
     # Status
-    status = Column(String, nullable=False, default=BookingStatus.RESERVED.value, index=True)
-    
+    status = Column(
+        String, nullable=False, default=BookingStatus.RESERVED.value, index=True
+    )
+
     # Payment
     payment_id = Column(String)
     payment_status = Column(String, nullable=False, default=PaymentStatus.PENDING.value)
     amount = Column(Numeric(10, 2), nullable=False, default=200.00)
     razorpay_order_id = Column(String)
     razorpay_payment_id = Column(String)
-    
+
     # Timestamps
-    reserved_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    reserved_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     confirmed_at = Column(DateTime(timezone=True))
     expires_at = Column(DateTime(timezone=True))  # 10 minutes from reserved_at
     completed_at = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
 
     # Relationships
     tenant = relationship("Tenant", back_populates="bookings")
@@ -108,29 +146,39 @@ class Booking(Base):
 class DailySchedule(Base):
     """
     Daily schedule model - stores generated PDFs for each clinic location.
-    
+
     Generated at midnight (12:00 AM) with:
     - Online bookings at top (with serial numbers)
     - Walk-in slots at bottom
     """
+
     __tablename__ = "daily_schedules"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    clinic_location_id = Column(String, ForeignKey("clinic_locations.id", ondelete="CASCADE"), nullable=False, index=True)
-    
+    tenant_id = Column(
+        String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    clinic_location_id = Column(
+        String,
+        ForeignKey("clinic_locations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     # Schedule details
     schedule_date = Column(Date, nullable=False, index=True)
     pdf_url = Column(String)
-    
+
     # Stats
     total_online_bookings = Column(Integer, nullable=False, default=0)
     total_walk_in_slots = Column(Integer, nullable=False, default=10)
-    
+
     # Timestamps
     generated_at = Column(DateTime(timezone=True))
     sent_at = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
     # Relationships
     tenant = relationship("Tenant", back_populates="daily_schedules")
@@ -138,4 +186,3 @@ class DailySchedule(Base):
 
     def __repr__(self):
         return f"<DailySchedule(id={self.id}, date={self.schedule_date}, bookings={self.total_online_bookings})>"
-

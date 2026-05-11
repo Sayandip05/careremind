@@ -21,7 +21,7 @@ logger = logging.getLogger("careremind.agents.nodes.persistence")
 
 async def save_to_db_node(state: IngestionState) -> dict:
     """Node: create Patient + Appointment records for each new (non-duplicate) row.
-    
+
     Also schedules reminders for each created appointment via the scheduling graph.
     """
     new_rows = state.get("new_rows", [])
@@ -36,9 +36,7 @@ async def save_to_db_node(state: IngestionState) -> dict:
     errors: list[str] = []
 
     # Load tenant for scheduling
-    tenant_result = await db.execute(
-        select(Tenant).where(Tenant.id == tenant_id)
-    )
+    tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
     tenant = tenant_result.scalar_one_or_none()
     if not tenant:
         errors.append(f"Tenant {tenant_id} not found")
@@ -50,7 +48,7 @@ async def save_to_db_node(state: IngestionState) -> dict:
             phone_hash = row.get("_phone_hash")
             if not phone_hash:
                 phone_hash = encryption_service.hash_phone(row["phone"])
-            
+
             patient = Patient(
                 id=str(uuid.uuid4()),
                 tenant_id=tenant_id,
@@ -81,8 +79,11 @@ async def save_to_db_node(state: IngestionState) -> dict:
             if appointment:
                 await db.flush()  # Ensure appointment has an ID
                 try:
-                    from app.core.langsmith import get_langsmith_metadata, get_langsmith_tags
-                    
+                    from app.core.langsmith import (
+                        get_langsmith_metadata,
+                        get_langsmith_tags,
+                    )
+
                     sched_result = await scheduling_graph.ainvoke(
                         {
                             "appointment": appointment,
@@ -97,17 +98,23 @@ async def save_to_db_node(state: IngestionState) -> dict:
                                 specialty=tenant.specialty,
                                 triggered_by="persistence_node",
                             ),
-                            "tags": get_langsmith_tags("scheduling", tenant.specialty or "general", "auto"),
-                        }
+                            "tags": get_langsmith_tags(
+                                "scheduling", tenant.specialty or "general", "auto"
+                            ),
+                        },
                     )
                     created = sched_result.get("created_reminders", [])
                     reminders_created += len(created)
                 except Exception as sched_e:
                     logger.error(
                         "Failed to schedule reminders for appointment %s: %s",
-                        appointment.id, sched_e, exc_info=True
+                        appointment.id,
+                        sched_e,
+                        exc_info=True,
                     )
-                    errors.append(f"Reminder scheduling failed for {row.get('name')}: {sched_e}")
+                    errors.append(
+                        f"Reminder scheduling failed for {row.get('name')}: {sched_e}"
+                    )
 
         except Exception as e:
             errors.append(f"Failed to save patient '{row.get('name')}': {e}")
@@ -117,7 +124,9 @@ async def save_to_db_node(state: IngestionState) -> dict:
 
     logger.info(
         "Persistence node: saved %d patients, %d reminders created, %d errors",
-        saved_count, reminders_created, len(errors),
+        saved_count,
+        reminders_created,
+        len(errors),
     )
 
     return {

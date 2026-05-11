@@ -155,13 +155,13 @@ async def _handle_whatsapp_image(
         await db.flush()
 
         result = await orchestrator.process("photo", file_bytes, tenant_id, db)
-        
+
         # Update upload log
         upload_log.status = UploadStatus.COMPLETED
         upload_log.total_rows = result.get("total_rows", 0)
         upload_log.duplicates_skipped = result.get("duplicates", 0)
         upload_log.failed_rows = len(result.get("errors", []))
-        
+
         await db.commit()
 
         response = (
@@ -227,13 +227,13 @@ async def _handle_whatsapp_document(
         await db.flush()
 
         result = await orchestrator.process("excel", file_bytes, tenant_id, db)
-        
+
         # Update upload log
         upload_log.status = UploadStatus.COMPLETED
         upload_log.total_rows = result.get("total_rows", 0)
         upload_log.duplicates_skipped = result.get("duplicates", 0)
         upload_log.failed_rows = len(result.get("errors", []))
-        
+
         await db.commit()
 
         response = (
@@ -288,7 +288,7 @@ async def _find_tenant_by_whatsapp(phone: str, db: AsyncSession) -> str | None:
     tenant = result.scalar_one_or_none()
     if tenant:
         return str(tenant.id)
-    
+
     # Try without +91 prefix (in case stored number varies in format)
     if phone.startswith("+91"):
         phone_without_prefix = phone[3:]  # Remove +91
@@ -298,7 +298,7 @@ async def _find_tenant_by_whatsapp(phone: str, db: AsyncSession) -> str | None:
         tenant = result.scalar_one_or_none()
         if tenant:
             return str(tenant.id)
-    
+
     return None
 
 
@@ -306,11 +306,11 @@ async def _send_whatsapp_message(to: str, message: str, phone_number_id: str):
     """Send a WhatsApp text message back to user using the unified service."""
     from app.core.integrations.whatsapp_service import whatsapp_service
     from app.core.config import settings
-    
+
     if not settings.META_WHATSAPP_TOKEN:
         logger.warning("Cannot send WhatsApp reply: META_WHATSAPP_TOKEN not configured")
         return
-    
+
     await whatsapp_service.send_message(to, message, phone_number_id)
 
 
@@ -362,42 +362,37 @@ async def _handle_optout(phone_raw: str, db: AsyncSession):
 
 
 @router.post("/razorpay")
-async def razorpay_webhook(
-    request: Request,
-    x_razorpay_signature: str = Header(None)
-):
+async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(None)):
     """Razorpay payment webhook — securely verified via HMAC."""
     from app.core.config import settings
-    
+
     if not x_razorpay_signature:
         logger.warning("Razorpay webhook attempt missing signature header.")
         return JSONResponse(status_code=400, content={"error": "Missing signature"})
-        
+
     try:
         raw_body = await request.body()
-        
+
         # In production this comes from secrets. Using RAZORPAY_SECRET as fallback placeholder
-        secret_key = getattr(settings, "RAZORPAY_WEBHOOK_SECRET", settings.RAZORPAY_SECRET)
+        secret_key = getattr(
+            settings, "RAZORPAY_WEBHOOK_SECRET", settings.RAZORPAY_SECRET
+        )
         secret = secret_key.encode("utf-8")
-        
-        expected_signature = hmac.new(
-            secret,
-            raw_body,
-            hashlib.sha256
-        ).hexdigest()
-        
+
+        expected_signature = hmac.new(secret, raw_body, hashlib.sha256).hexdigest()
+
         if not hmac.compare_digest(expected_signature, x_razorpay_signature):
             logger.critical(
                 "Razorpay webhook signature mismatch! Possible spoof attack. Expected: %s..., Got: %s...",
                 expected_signature[:8],
-                x_razorpay_signature[:8]
+                x_razorpay_signature[:8],
             )
             return JSONResponse(status_code=400, content={"error": "Invalid signature"})
-            
+
         payload = await request.json()
         event_type = payload.get("event", "unknown")
         logger.info("Verified Razorpay webhook event: %s", event_type)
-        
+
         # ── Event Processing ─────────────────────────────────
         # Razorpay sends events like: payment.captured, payment.failed,
         # order.paid, refund.created, etc.
@@ -414,7 +409,7 @@ async def razorpay_webhook(
         # as the primary payment confirmation path. This webhook serves as
         # a server-to-server backup for reliability in production.
         # ─────────────────────────────────────────────────────
-        
+
     except Exception as e:
         logger.error("Error processing Razorpay webhook: %s", e)
         return JSONResponse(status_code=500, content={"error": "Handler Error"})

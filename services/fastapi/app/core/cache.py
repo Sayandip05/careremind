@@ -59,7 +59,10 @@ class CacheClient:
             except Exception as exc:
                 logger.warning(
                     "Redis client initialisation failed — cache disabled",
-                    extra={"error": str(exc), "redis_url_scheme": settings.UPSTASH_REDIS_URL.split(":")[0]},
+                    extra={
+                        "error": str(exc),
+                        "redis_url_scheme": settings.UPSTASH_REDIS_URL.split(":")[0],
+                    },
                 )
                 self._available = False
         return self._client

@@ -39,8 +39,8 @@ orchestrator = Orchestrator()
 _ocr_agent = OcrAgent()
 
 # Max file sizes
-MAX_EXCEL_SIZE = 10 * 1024 * 1024   # 10 MB
-MAX_PHOTO_SIZE = 20 * 1024 * 1024   # 20 MB
+MAX_EXCEL_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_PHOTO_SIZE = 20 * 1024 * 1024  # 20 MB
 
 # Idempotency window: reject re-uploads of the same file within this period
 _DEDUP_WINDOW_HOURS = 24
@@ -68,11 +68,13 @@ async def _find_duplicate_upload(
             UploadLog.tenant_id == tenant_id,
             UploadLog.file_hash == file_hash,
             UploadLog.file_type == file_type,
-            UploadLog.status.in_([
-                UploadStatus.COMPLETED,
-                UploadStatus.PENDING_REVIEW,
-                UploadStatus.PARTIAL,
-            ]),
+            UploadLog.status.in_(
+                [
+                    UploadStatus.COMPLETED,
+                    UploadStatus.PENDING_REVIEW,
+                    UploadStatus.PARTIAL,
+                ]
+            ),
             UploadLog.created_at >= cutoff,
         )
     )
@@ -80,6 +82,7 @@ async def _find_duplicate_upload(
 
 
 # ── Excel Upload (automatic pipeline) ─────────────────────────────────────────
+
 
 @router.post("/excel")
 async def upload_excel(
@@ -92,7 +95,9 @@ async def upload_excel(
     Pipeline: ExcelAgent → Dedup → Save patients + appointments.
     """
     if not file.filename or not file.filename.lower().endswith((".xlsx", ".xls")):
-        raise HTTPException(status_code=400, detail="Only .xlsx and .xls files accepted")
+        raise HTTPException(
+            status_code=400, detail="Only .xlsx and .xls files accepted"
+        )
 
     file_bytes = await file.read()
     if len(file_bytes) > MAX_EXCEL_SIZE:
@@ -106,14 +111,18 @@ async def upload_excel(
     if existing:
         logger.info(
             "Duplicate Excel upload detected for tenant %s (hash=%s, original=%s)",
-            tenant_id, file_hash[:12], existing.id,
+            tenant_id,
+            file_hash[:12],
+            existing.id,
         )
         return {
             "upload_id": existing.id,
             "status": "already_processed",
             "filename": existing.filename,
             "total_rows": existing.total_rows,
-            "new_patients": existing.total_rows - existing.duplicates_skipped - existing.failed_rows,
+            "new_patients": existing.total_rows
+            - existing.duplicates_skipped
+            - existing.failed_rows,
             "duplicates": existing.duplicates_skipped,
             "skipped": existing.failed_rows,
             "errors": [],
@@ -173,6 +182,7 @@ async def upload_excel(
 
 # ── Photo Upload — Step 1: Extract (Human-in-the-Loop) ────────────────────────
 
+
 @router.post("/photo", response_model=PhotoExtractResponse)
 async def upload_photo(
     file: UploadFile = File(...),
@@ -207,7 +217,8 @@ async def upload_photo(
     if existing and existing.status == UploadStatus.PENDING_REVIEW:
         logger.info(
             "Duplicate photo upload — returning cached extraction for tenant %s (upload=%s)",
-            tenant_id, existing.id,
+            tenant_id,
+            existing.id,
         )
         cached_rows = json.loads(existing.extracted_data or "[]")
         return PhotoExtractResponse(
@@ -222,7 +233,8 @@ async def upload_photo(
     if existing and existing.status == UploadStatus.COMPLETED:
         logger.info(
             "Duplicate photo upload — already completed for tenant %s (upload=%s)",
-            tenant_id, existing.id,
+            tenant_id,
+            existing.id,
         )
         return PhotoExtractResponse(
             upload_id=existing.id,
@@ -254,7 +266,9 @@ async def upload_photo(
     try:
         ocr_result = await _ocr_agent.extract(file_bytes)
     except Exception as e:
-        logger.error("OCR extraction failed for upload %s: %s", upload_id, e, exc_info=True)
+        logger.error(
+            "OCR extraction failed for upload %s: %s", upload_id, e, exc_info=True
+        )
         upload_log.status = UploadStatus.FAILED
         await db.flush()
         raise HTTPException(status_code=500, detail=f"Image processing failed: {e}")
@@ -269,7 +283,8 @@ async def upload_photo(
         await db.flush()
         logger.warning(
             "VLM extraction returned 0 rows for upload %s. Errors: %s",
-            upload_id, errors,
+            upload_id,
+            errors,
         )
         return PhotoExtractResponse(
             upload_id=upload_id,
@@ -285,12 +300,18 @@ async def upload_photo(
     # Convert date objects to strings so they're JSON-serializable
     serializable_rows = []
     for row in extracted_rows:
-        serializable_rows.append({
-            "name": row.get("name", ""),
-            "phone": row.get("phone", ""),
-            "visit_date": row["visit_date"].isoformat() if row.get("visit_date") else None,
-            "next_visit_date": row["next_visit_date"].isoformat() if row.get("next_visit_date") else None,
-        })
+        serializable_rows.append(
+            {
+                "name": row.get("name", ""),
+                "phone": row.get("phone", ""),
+                "visit_date": row["visit_date"].isoformat()
+                if row.get("visit_date")
+                else None,
+                "next_visit_date": row["next_visit_date"].isoformat()
+                if row.get("next_visit_date")
+                else None,
+            }
+        )
 
     upload_log.status = UploadStatus.PENDING_REVIEW
     upload_log.extracted_data = json.dumps(serializable_rows)
@@ -299,7 +320,10 @@ async def upload_photo(
 
     logger.info(
         "Photo extracted %d rows for tenant %s (upload=%s, provider=%s)",
-        len(serializable_rows), tenant_id, upload_id, provider,
+        len(serializable_rows),
+        tenant_id,
+        upload_id,
+        provider,
     )
 
     return PhotoExtractResponse(
@@ -314,6 +338,7 @@ async def upload_photo(
 
 
 # ── Photo Upload — Step 2: Confirm & Save ─────────────────────────────────────
+
 
 @router.post("/photo/confirm")
 async def confirm_photo_upload(
@@ -376,8 +401,8 @@ async def confirm_photo_upload(
 
         result = await ingestion_graph.ainvoke(
             {
-                "file_type": "photo",          # routes to extract_ocr, but we override below
-                "file_bytes": b"",             # not needed — extraction already done
+                "file_type": "photo",  # routes to extract_ocr, but we override below
+                "file_bytes": b"",  # not needed — extraction already done
                 "tenant_id": tenant_id,
                 "db": db,
                 # Inject pre-reviewed rows directly, bypassing VLM extraction
@@ -404,7 +429,9 @@ async def confirm_photo_upload(
         duplicates = len(result.get("duplicate_rows", []))
         skipped = result.get("extraction_skipped", 0)
 
-        upload_log.status = UploadStatus.COMPLETED if saved > 0 else UploadStatus.PARTIAL
+        upload_log.status = (
+            UploadStatus.COMPLETED if saved > 0 else UploadStatus.PARTIAL
+        )
         upload_log.total_rows = len(rows_for_pipeline)
         upload_log.duplicates_skipped = duplicates
         upload_log.failed_rows = skipped
@@ -413,7 +440,10 @@ async def confirm_photo_upload(
 
         logger.info(
             "Photo confirm: saved=%d duplicates=%d skipped=%d upload=%s",
-            saved, duplicates, skipped, body.upload_id,
+            saved,
+            duplicates,
+            skipped,
+            body.upload_id,
         )
 
         return {
@@ -427,7 +457,9 @@ async def confirm_photo_upload(
         }
 
     except Exception as e:
-        logger.error("Photo confirm failed for upload %s: %s", body.upload_id, e, exc_info=True)
+        logger.error(
+            "Photo confirm failed for upload %s: %s", body.upload_id, e, exc_info=True
+        )
         upload_log.status = UploadStatus.FAILED
         await db.flush()
         raise HTTPException(status_code=500, detail=f"Save failed: {e}")

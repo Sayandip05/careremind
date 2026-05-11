@@ -18,11 +18,11 @@ logger = logging.getLogger("careremind.errors")
 class ErrorHandlerMiddleware(BaseHTTPMiddleware):
     """
     Catches all exceptions and returns standardized error responses.
-    
+
     - AppException: Returns the specified status code and message
     - Other exceptions: Returns 500 with generic message (production) or details (dev)
     """
-    
+
     async def dispatch(self, request: Request, call_next):
         try:
             return await call_next(request)
@@ -41,12 +41,14 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
                 exc,
                 exc_info=True,
             )
-            
+
             if settings.is_production:
                 # Production: don't expose internal details
                 return JSONResponse(
                     status_code=500,
-                    content={"detail": "An unexpected error occurred. Please try again later."},
+                    content={
+                        "detail": "An unexpected error occurred. Please try again later."
+                    },
                 )
             else:
                 # Development: include traceback for debugging

@@ -17,17 +17,34 @@ class Appointment(Base):
     __tablename__ = "appointments"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id = Column(
+        String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    patient_id = Column(
+        String,
+        ForeignKey("patients.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     visit_date = Column(Date, nullable=False)
     next_visit_date = Column(Date)
     specialty_override = Column(String)
     notes_encrypted = Column(Text)
-    source = Column(Enum(UploadSource, values_callable=lambda x: [e.value for e in x]), nullable=False, default=UploadSource.MANUAL)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    source = Column(
+        Enum(UploadSource, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=UploadSource.MANUAL,
+    )
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
     # Relationships
     tenant = relationship("Tenant", back_populates="appointments")
     patient = relationship("Patient", back_populates="appointments")
-    reminders = relationship("Reminder", back_populates="appointment", cascade="all, delete-orphan")
-    bookings = relationship("Booking", back_populates="appointment", cascade="all, delete-orphan")
+    reminders = relationship(
+        "Reminder", back_populates="appointment", cascade="all, delete-orphan"
+    )
+    bookings = relationship(
+        "Booking", back_populates="appointment", cascade="all, delete-orphan"
+    )

@@ -24,6 +24,7 @@ logger = logging.getLogger("careremind.services.razorpay")
 # Shared HTTP client (will be set by main.py lifespan)
 _http_client: Optional[httpx.AsyncClient] = None
 
+
 def set_http_client(client: httpx.AsyncClient):
     """Set the shared HTTP client for connection pooling."""
     global _http_client
@@ -50,12 +51,7 @@ class RazorpayService:
         before_sleep=before_sleep_log(logger, logging.WARNING),
         reraise=True,
     )
-    async def _send_request(
-        self,
-        method: str,
-        url: str,
-        **kwargs
-    ) -> httpx.Response:
+    async def _send_request(self, method: str, url: str, **kwargs) -> httpx.Response:
         """
         Internal method to send HTTP request with retry logic.
         Retries on timeout and network errors with exponential backoff.
@@ -66,7 +62,9 @@ class RazorpayService:
             elif method == "GET":
                 return await _http_client.get(url, **kwargs)
         else:
-            async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_DEFAULT) as client:
+            async with httpx.AsyncClient(
+                timeout=settings.HTTP_TIMEOUT_DEFAULT
+            ) as client:
                 if method == "POST":
                     return await client.post(url, **kwargs)
                 elif method == "GET":
@@ -82,14 +80,14 @@ class RazorpayService:
     ) -> dict:
         """
         Create a Razorpay order for payment.
-        
+
         Args:
             amount: Amount in rupees (will be converted to paise)
             currency: Currency code (default: INR)
             receipt: Optional receipt ID
             notes: Optional metadata
             idempotency_key: Optional idempotency key to prevent duplicate orders
-        
+
         Returns:
             {
                 "success": True/False,
@@ -100,10 +98,7 @@ class RazorpayService:
             }
         """
         if not self.is_configured:
-            return {
-                "success": False,
-                "error": "Razorpay credentials not configured"
-            }
+            return {"success": False, "error": "Razorpay credentials not configured"}
 
         # Convert rupees to paise (Razorpay uses smallest currency unit)
         amount_paise = int(amount * 100)
@@ -142,24 +137,15 @@ class RazorpayService:
             else:
                 error = data.get("error", {}).get("description", response.text)
                 logger.error("Razorpay order creation failed: %s", error)
-                return {
-                    "success": False,
-                    "error": error
-                }
+                return {"success": False, "error": error}
 
         except httpx.TimeoutException:
             logger.error("Razorpay API timeout (after retries)")
-            return {
-                "success": False,
-                "error": "Payment gateway timeout after retries"
-            }
+            return {"success": False, "error": "Payment gateway timeout after retries"}
 
         except Exception as e:
             logger.error("Razorpay error: %s", e, exc_info=True)
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     async def verify_payment_signature(
         self,
@@ -169,12 +155,12 @@ class RazorpayService:
     ) -> bool:
         """
         Verify Razorpay payment signature for security.
-        
+
         Args:
             razorpay_order_id: Order ID from Razorpay
             razorpay_payment_id: Payment ID from Razorpay
             razorpay_signature: Signature from Razorpay
-        
+
         Returns:
             True if signature is valid, False otherwise
         """
@@ -185,9 +171,7 @@ class RazorpayService:
         # Generate expected signature
         message = f"{razorpay_order_id}|{razorpay_payment_id}"
         expected_signature = hmac.new(
-            self.key_secret.encode(),
-            message.encode(),
-            hashlib.sha256
+            self.key_secret.encode(), message.encode(), hashlib.sha256
         ).hexdigest()
 
         # Compare signatures
@@ -203,7 +187,7 @@ class RazorpayService:
     async def fetch_payment(self, payment_id: str) -> dict:
         """
         Fetch payment details from Razorpay.
-        
+
         Returns:
             {
                 "success": True/False,
@@ -212,10 +196,7 @@ class RazorpayService:
             }
         """
         if not self.is_configured:
-            return {
-                "success": False,
-                "error": "Razorpay credentials not configured"
-            }
+            return {"success": False, "error": "Razorpay credentials not configured"}
 
         try:
             response = await self._send_request(
@@ -227,23 +208,14 @@ class RazorpayService:
             data = response.json()
 
             if response.status_code == 200:
-                return {
-                    "success": True,
-                    "payment": data
-                }
+                return {"success": True, "payment": data}
             else:
                 error = data.get("error", {}).get("description", response.text)
-                return {
-                    "success": False,
-                    "error": error
-                }
+                return {"success": False, "error": error}
 
         except Exception as e:
             logger.error("Failed to fetch payment: %s", e)
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     async def verify_webhook_signature(
         self,
@@ -252,11 +224,11 @@ class RazorpayService:
     ) -> bool:
         """
         Verify webhook signature from Razorpay.
-        
+
         Args:
             payload: Raw request body
             signature: X-Razorpay-Signature header
-        
+
         Returns:
             True if signature is valid, False otherwise
         """
@@ -265,9 +237,7 @@ class RazorpayService:
             return False
 
         expected_signature = hmac.new(
-            settings.RAZORPAY_WEBHOOK_SECRET.encode(),
-            payload,
-            hashlib.sha256
+            settings.RAZORPAY_WEBHOOK_SECRET.encode(), payload, hashlib.sha256
         ).hexdigest()
 
         is_valid = hmac.compare_digest(expected_signature, signature)
@@ -279,4 +249,3 @@ class RazorpayService:
 
 
 razorpay_service = RazorpayService()
-

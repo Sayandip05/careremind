@@ -24,6 +24,7 @@ logger = logging.getLogger("careremind.services.nvidia")
 # Shared HTTP client (will be set by main.py lifespan)
 _http_client: Optional[httpx.AsyncClient] = None
 
+
 def set_http_client(client: httpx.AsyncClient):
     """Set the shared HTTP client for connection pooling."""
     global _http_client
@@ -38,7 +39,13 @@ class NvidiaService:
         self.api_url = settings.NVIDIA_API_URL
         self.model = "meta/llama-3.2-11b-vision-instruct"
 
-    async def vision(self, image_base64: str, prompt: str, system: str = "", mime_type: str = "image/jpeg") -> str:
+    async def vision(
+        self,
+        image_base64: str,
+        prompt: str,
+        system: str = "",
+        mime_type: str = "image/jpeg",
+    ) -> str:
         """
         Send an image + prompt to NVIDIA vision model.
         Uses inline base64 image format.
@@ -52,18 +59,20 @@ class NvidiaService:
         if system:
             messages.append({"role": "system", "content": system})
 
-        messages.append({
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt},
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:{mime_type};base64,{image_base64}",
+        messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{image_base64}",
+                        },
                     },
-                },
-            ],
-        })
+                ],
+            }
+        )
 
         return await self._request(messages)
 
@@ -92,12 +101,18 @@ class NvidiaService:
         try:
             if _http_client:
                 response = await _http_client.post(
-                    self.api_url, json=payload, headers=headers,
+                    self.api_url,
+                    json=payload,
+                    headers=headers,
                 )
             else:
-                async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_LONG) as client:
+                async with httpx.AsyncClient(
+                    timeout=settings.HTTP_TIMEOUT_LONG
+                ) as client:
                     response = await client.post(
-                        self.api_url, json=payload, headers=headers,
+                        self.api_url,
+                        json=payload,
+                        headers=headers,
                     )
 
             if response.status_code != 200:

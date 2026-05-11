@@ -27,12 +27,23 @@ class Tenant(Base):
     whatsapp_number = Column(String)
     hashed_password = Column(String, nullable=False)
     email_marketing = Column(Boolean, nullable=False, default=True)
-    plan = Column(Enum(PlanType, values_callable=lambda x: [e.value for e in x]), nullable=False, default=PlanType.FREE)
+    plan = Column(
+        Enum(PlanType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=PlanType.FREE,
+    )
     trial_ends_at = Column(DateTime(timezone=True))
     is_active = Column(Boolean, nullable=False, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
     # Clinic address fields
     street = Column(String)
     city = Column(String)
@@ -40,11 +51,27 @@ class Tenant(Base):
     state = Column(String)
 
     # Relationships
-    patients = relationship("Patient", back_populates="tenant", cascade="all, delete-orphan")
-    appointments = relationship("Appointment", back_populates="tenant", cascade="all, delete-orphan")
-    reminders = relationship("Reminder", back_populates="tenant", cascade="all, delete-orphan")
-    upload_logs = relationship("UploadLog", back_populates="tenant", cascade="all, delete-orphan")
-    payments = relationship("Payment", back_populates="tenant", cascade="all, delete-orphan")
-    clinic_locations = relationship("ClinicLocation", back_populates="tenant", cascade="all, delete-orphan")
-    bookings = relationship("Booking", back_populates="tenant", cascade="all, delete-orphan")
-    daily_schedules = relationship("DailySchedule", back_populates="tenant", cascade="all, delete-orphan")
+    patients = relationship(
+        "Patient", back_populates="tenant", cascade="all, delete-orphan"
+    )
+    appointments = relationship(
+        "Appointment", back_populates="tenant", cascade="all, delete-orphan"
+    )
+    reminders = relationship(
+        "Reminder", back_populates="tenant", cascade="all, delete-orphan"
+    )
+    upload_logs = relationship(
+        "UploadLog", back_populates="tenant", cascade="all, delete-orphan"
+    )
+    payments = relationship(
+        "Payment", back_populates="tenant", cascade="all, delete-orphan"
+    )
+    clinic_locations = relationship(
+        "ClinicLocation", back_populates="tenant", cascade="all, delete-orphan"
+    )
+    bookings = relationship(
+        "Booking", back_populates="tenant", cascade="all, delete-orphan"
+    )
+    daily_schedules = relationship(
+        "DailySchedule", back_populates="tenant", cascade="all, delete-orphan"
+    )

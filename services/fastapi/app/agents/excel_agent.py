@@ -43,16 +43,26 @@ class ExcelAgent:
                 "skipped": 0,
                 "errors": ["Invalid or empty Excel file"],
             }
-        
+
         try:
             wb = openpyxl.load_workbook(BytesIO(file_bytes), read_only=True)
         except Exception as e:
             logger.error("Failed to open Excel file: %s", e)
-            return {"rows": [], "total_rows": 0, "skipped": 0, "errors": [f"Cannot read Excel file: {e}"]}
+            return {
+                "rows": [],
+                "total_rows": 0,
+                "skipped": 0,
+                "errors": [f"Cannot read Excel file: {e}"],
+            }
 
         sheet = wb.active
         if sheet is None:
-            return {"rows": [], "total_rows": 0, "skipped": 0, "errors": ["No active sheet found"]}
+            return {
+                "rows": [],
+                "total_rows": 0,
+                "skipped": 0,
+                "errors": ["No active sheet found"],
+            }
 
         rows_iter = sheet.iter_rows(values_only=True)
 
@@ -66,7 +76,12 @@ class ExcelAgent:
             break
 
         if not header_row:
-            return {"rows": [], "total_rows": 0, "skipped": 0, "errors": ["No header row found"]}
+            return {
+                "rows": [],
+                "total_rows": 0,
+                "skipped": 0,
+                "errors": ["No header row found"],
+            }
 
         # ── Map columns ──────────────────────────────────────
         mapping = match_columns(header_row)
@@ -77,7 +92,9 @@ class ExcelAgent:
                 "rows": [],
                 "total_rows": 0,
                 "skipped": 0,
-                "errors": [f"Missing required columns: {', '.join(missing)}. Found headers: {header_row}"],
+                "errors": [
+                    f"Missing required columns: {', '.join(missing)}. Found headers: {header_row}"
+                ],
             }
 
         logger.info("Column mapping: %s", mapping)
@@ -97,8 +114,16 @@ class ExcelAgent:
                 continue
 
             # Extract fields using column mapping
-            raw_name = cells[mapping["name"]] if mapping["name"] is not None and mapping["name"] < len(cells) else None
-            raw_phone = cells[mapping["phone"]] if mapping["phone"] is not None and mapping["phone"] < len(cells) else None
+            raw_name = (
+                cells[mapping["name"]]
+                if mapping["name"] is not None and mapping["name"] < len(cells)
+                else None
+            )
+            raw_phone = (
+                cells[mapping["phone"]]
+                if mapping["phone"] is not None and mapping["phone"] < len(cells)
+                else None
+            )
 
             # Name is required
             if not raw_name:
@@ -119,25 +144,41 @@ class ExcelAgent:
             phone = normalize_phone(str(raw_phone))
             if not phone:
                 skipped += 1
-                errors.append(f"Row {row_num}: invalid phone '{raw_phone}' for '{name}'")
+                errors.append(
+                    f"Row {row_num}: invalid phone '{raw_phone}' for '{name}'"
+                )
                 continue
 
             # Dates are optional
-            raw_visit = cells[mapping["visit_date"]] if mapping.get("visit_date") is not None and mapping["visit_date"] < len(cells) else None
-            raw_next = cells[mapping["next_visit_date"]] if mapping.get("next_visit_date") is not None and mapping["next_visit_date"] < len(cells) else None
+            raw_visit = (
+                cells[mapping["visit_date"]]
+                if mapping.get("visit_date") is not None
+                and mapping["visit_date"] < len(cells)
+                else None
+            )
+            raw_next = (
+                cells[mapping["next_visit_date"]]
+                if mapping.get("next_visit_date") is not None
+                and mapping["next_visit_date"] < len(cells)
+                else None
+            )
 
-            extracted.append({
-                "name": name,
-                "phone": phone,
-                "visit_date": parse_date(raw_visit),
-                "next_visit_date": parse_date(raw_next),
-            })
+            extracted.append(
+                {
+                    "name": name,
+                    "phone": phone,
+                    "visit_date": parse_date(raw_visit),
+                    "next_visit_date": parse_date(raw_next),
+                }
+            )
 
         wb.close()
 
         logger.info(
             "Excel extraction: %d rows extracted, %d skipped, %d errors",
-            len(extracted), skipped, len(errors),
+            len(extracted),
+            skipped,
+            len(errors),
         )
 
         return {

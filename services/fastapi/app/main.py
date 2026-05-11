@@ -60,7 +60,6 @@ if initialize_langsmith():
     logger.info("LangSmith agent tracing enabled")
 
 
-
 # ── Lifespan (startup/shutdown) ──────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -73,42 +72,50 @@ async def lifespan(app: FastAPI):
     from app.scheduler.jobs import SCHEDULED_JOBS
     from app.core.database import engine
     from app.core.cache import cache
-    
+
     logger.info("CareRemind API starting up — environment: %s", settings.ENVIRONMENT)
-    
+
     # ── Startup ──────────────────────────────────────────────
-    
+
     # Create shared HTTP client for connection pooling
     app.state.http_client = httpx.AsyncClient(
         timeout=settings.HTTP_TIMEOUT_DEFAULT,
         limits=httpx.Limits(
             max_connections=settings.HTTP_MAX_CONNECTIONS,
-            max_keepalive_connections=settings.HTTP_MAX_KEEPALIVE
-        )
+            max_keepalive_connections=settings.HTTP_MAX_KEEPALIVE,
+        ),
     )
     logger.info("HTTP client initialized with connection pooling")
-    
+
     # Inject HTTP client into services
-    from app.core.integrations.whatsapp_service import set_http_client as set_whatsapp_client
-    from app.core.integrations.razorpay_service import set_http_client as set_razorpay_client
-    from app.core.integrations.openai_service import set_http_client as set_openai_client
-    from app.core.integrations.nvidia_service import set_http_client as set_nvidia_client
-    
+    from app.core.integrations.whatsapp_service import (
+        set_http_client as set_whatsapp_client,
+    )
+    from app.core.integrations.razorpay_service import (
+        set_http_client as set_razorpay_client,
+    )
+    from app.core.integrations.openai_service import (
+        set_http_client as set_openai_client,
+    )
+    from app.core.integrations.nvidia_service import (
+        set_http_client as set_nvidia_client,
+    )
+
     set_whatsapp_client(app.state.http_client)
     set_razorpay_client(app.state.http_client)
     set_openai_client(app.state.http_client)
     set_nvidia_client(app.state.http_client)
     logger.info("HTTP client injected into all services")
-    
+
     # Start scheduler for background jobs
     scheduler = AsyncIOScheduler()
-    
+
     for job_config in SCHEDULED_JOBS:
         func = job_config["func"]
         trigger_type = job_config["trigger"]
         job_id = job_config["id"]
         job_name = job_config["name"]
-        
+
         if trigger_type == "cron":
             trigger = CronTrigger(
                 hour=job_config.get("hour"),
@@ -121,7 +128,7 @@ async def lifespan(app: FastAPI):
         else:
             logger.error("Unknown trigger type: %s", trigger_type)
             continue
-        
+
         scheduler.add_job(
             func,
             trigger=trigger,
@@ -129,46 +136,46 @@ async def lifespan(app: FastAPI):
             name=job_name,
             replace_existing=job_config.get("replace_existing", True),
         )
-        
+
         logger.info("Scheduled job: %s", job_name)
-    
+
     scheduler.start()
     logger.info("Scheduler started with %d jobs", len(SCHEDULED_JOBS))
-    
+
     # ── Signal Handlers for Graceful Shutdown ────────────────
     def handle_shutdown_signal(signum, frame):
         """Handle SIGTERM/SIGINT for graceful shutdown in Docker/K8s."""
         logger.info("Received signal %s, initiating graceful shutdown", signum)
-    
+
     signal.signal(signal.SIGTERM, handle_shutdown_signal)
     signal.signal(signal.SIGINT, handle_shutdown_signal)
     logger.info("Signal handlers registered (SIGTERM, SIGINT)")
-    
+
     yield
-    
+
     # ── Shutdown ─────────────────────────────────────────────
     logger.info("CareRemind API shutting down gracefully")
-    
+
     # 1. Stop scheduler (wait for running jobs to finish)
     logger.info("Stopping scheduler...")
     scheduler.shutdown(wait=True)
     logger.info("Scheduler stopped")
-    
+
     # 2. Close HTTP client
     logger.info("Closing HTTP client...")
     await app.state.http_client.aclose()
     logger.info("HTTP client closed")
-    
+
     # 3. Close Redis connections
     logger.info("Closing Redis connections...")
     await cache.close()
     logger.info("Redis connections closed")
-    
+
     # 4. Dispose database engine (close all connections)
     logger.info("Disposing database engine...")
     await engine.dispose()
     logger.info("Database connections closed")
-    
+
     logger.info("Graceful shutdown complete")
 
 
@@ -190,8 +197,8 @@ app.add_middleware(ErrorHandlerMiddleware)  # Catch all unhandled exceptions
 app.add_middleware(AuthMiddleware)
 app.add_middleware(TenantContextMiddleware)
 app.add_middleware(RateLimiterMiddleware)  # 3. Rate Limit IPs
-app.add_middleware(SecurityHeadersMiddleware) # 2. Append Security Headers
-app.add_middleware(AuditLogger) # 1. Log HTTP requests
+app.add_middleware(SecurityHeadersMiddleware)  # 2. Append Security Headers
+app.add_middleware(AuditLogger)  # 1. Log HTTP requests
 
 app.add_middleware(
     CORSMiddleware,

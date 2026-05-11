@@ -9,23 +9,45 @@ from typing import Optional
 # Each canonical field → list of patterns that match it (case-insensitive)
 COLUMN_PATTERNS: dict[str, list[str]] = {
     "name": [
-        r"name", r"patient", r"patient.?name", r"full.?name",
-        r"nm", r"pt.?name",
+        r"name",
+        r"patient",
+        r"patient.?name",
+        r"full.?name",
+        r"nm",
+        r"pt.?name",
     ],
     "phone": [
-        r"phone", r"mobile", r"contact", r"mob", r"cell",
-        r"phone.?no", r"mobile.?no", r"contact.?no",
-        r"ph.?no", r"mob.?no", r"number", r"whatsapp",
+        r"phone",
+        r"mobile",
+        r"contact",
+        r"mob",
+        r"cell",
+        r"phone.?no",
+        r"mobile.?no",
+        r"contact.?no",
+        r"ph.?no",
+        r"mob.?no",
+        r"number",
+        r"whatsapp",
     ],
     "visit_date": [
-        r"visit.?date", r"last.?visit", r"date.?of.?visit",
-        r"consultation.?date", r"seen.?on", r"visit",
+        r"visit.?date",
+        r"last.?visit",
+        r"date.?of.?visit",
+        r"consultation.?date",
+        r"seen.?on",
+        r"visit",
         r"date",  # generic "Date" column — assumed to be visit date
     ],
     "next_visit_date": [
-        r"next.?visit", r"follow.?up", r"return.?date",
-        r"next.?appointment", r"next.?date", r"revisit",
-        r"follow.?up.?date", r"nxt.?visit",
+        r"next.?visit",
+        r"follow.?up",
+        r"return.?date",
+        r"next.?appointment",
+        r"next.?date",
+        r"revisit",
+        r"follow.?up.?date",
+        r"nxt.?visit",
     ],
 }
 
@@ -39,9 +61,7 @@ def match_columns(headers: list[str]) -> dict[str, Optional[int]]:
         headers = ["Patient Name", "Contact No", "Next Visit Date"]
         → {"name": 0, "phone": 1, "visit_date": None, "next_visit_date": 2}
     """
-    mapping: dict[str, Optional[int]] = {
-        field: None for field in COLUMN_PATTERNS
-    }
+    mapping: dict[str, Optional[int]] = {field: None for field in COLUMN_PATTERNS}
 
     for idx, raw_header in enumerate(headers):
         if not raw_header:

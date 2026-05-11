@@ -36,7 +36,9 @@ class MessageAgent:
         # Get specialty and language
         specialty_name = appointment.specialty_override or tenant.specialty
         specialty = get_specialty(specialty_name)
-        language = get_language(patient.language_preference or tenant.language_preference)
+        language = get_language(
+            patient.language_preference or tenant.language_preference
+        )
 
         # Format the date
         visit_date = appointment.next_visit_date or appointment.visit_date

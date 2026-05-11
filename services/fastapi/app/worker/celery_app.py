@@ -38,10 +38,8 @@ celery_app.conf.update(
     # ── Broker & Backend ──────────────────────────────────────────────────
     broker_url=settings.UPSTASH_REDIS_URL,
     result_backend=settings.UPSTASH_REDIS_URL,
-
     # ── TLS (populated only for rediss:// URLs) ───────────────────────────
     **_ssl_opts,
-
     # ── Queue isolation ───────────────────────────────────────────────────
     # Route all tasks to 'careremind' so we don't bleed into other projects
     # that share the same Upstash instance.
@@ -49,27 +47,22 @@ celery_app.conf.update(
     task_queues={
         "careremind": {"exchange": "careremind", "routing_key": "careremind"},
     },
-
     # ── Serialization ─────────────────────────────────────────────────────
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
-
     # ── Time ──────────────────────────────────────────────────────────────
     timezone="Asia/Kolkata",
     enable_utc=True,
-
     # ── Reliability ───────────────────────────────────────────────────────
     task_track_started=True,
-    task_acks_late=True,           # Re-queue on worker crash mid-execution
+    task_acks_late=True,  # Re-queue on worker crash mid-execution
     worker_prefetch_multiplier=4,  # Prefetch 4 tasks per worker for throughput
-
     # ── Timeouts ──────────────────────────────────────────────────────────
-    task_soft_time_limit=300,      # 5 min — raises SoftTimeLimitExceeded
-    task_time_limit=600,           # 10 min hard kill
-
+    task_soft_time_limit=300,  # 5 min — raises SoftTimeLimitExceeded
+    task_time_limit=600,  # 10 min hard kill
     # ── Results ───────────────────────────────────────────────────────────
-    result_expires=3600,           # Expire after 1 h to prevent Redis bloat
+    result_expires=3600,  # Expire after 1 h to prevent Redis bloat
 )
 
 # Auto-discover all tasks declared inside app/worker/tasks/

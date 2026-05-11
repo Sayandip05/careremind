@@ -71,7 +71,9 @@ class DedupAgent:
 
         logger.info(
             "Dedup result: %d new, %d duplicates (out of %d)",
-            len(new_rows), len(dup_rows), len(rows),
+            len(new_rows),
+            len(dup_rows),
+            len(rows),
         )
 
         return {"new": new_rows, "duplicates": dup_rows}

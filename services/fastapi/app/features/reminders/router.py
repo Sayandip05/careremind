@@ -82,9 +82,9 @@ async def retry_reminder(
     IDOR protected — only the owning doctor can retry.
     """
     from datetime import datetime, timezone
-    
+
     tenant_id = str(tenant.id)
-    
+
     # Fetch the reminder with IDOR check
     result = await db.execute(
         select(Reminder).where(
@@ -93,27 +93,27 @@ async def retry_reminder(
         )
     )
     reminder = result.scalar_one_or_none()
-    
+
     if not reminder:
         raise HTTPException(status_code=404, detail="Reminder not found")
-    
+
     # Only allow retrying failed reminders
     if reminder.status != ReminderStatus.FAILED:
         raise HTTPException(
-            status_code=400, 
-            detail=f"Cannot retry reminder with status '{reminder.status.value}'. Only 'failed' reminders can be retried."
+            status_code=400,
+            detail=f"Cannot retry reminder with status '{reminder.status.value}'. Only 'failed' reminders can be retried.",
         )
-    
+
     # Reset to pending
     reminder.status = ReminderStatus.PENDING
     reminder.error_log = None
     reminder.sent_at = None
     reminder.retry_count = 0
-    
+
     await db.flush()
-    
+
     logger.info("Reminder %s manually retried by tenant %s", reminder_id, tenant_id)
-    
+
     return {
         "message": "Reminder queued for retry",
         "reminder_id": reminder_id,

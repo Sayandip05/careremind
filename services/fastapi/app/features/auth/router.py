@@ -13,7 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import create_access_token, get_current_tenant
 from app.features.auth.models import Tenant
-from app.features.auth.schemas import TenantResponse, TenantUpdate, TenantRegister, TokenResponse
+from app.features.auth.schemas import (
+    TenantResponse,
+    TenantUpdate,
+    TenantRegister,
+    TokenResponse,
+)
 from app.features.auth import service as auth_service
 from app.specialty import list_known_specialties
 
@@ -35,7 +40,9 @@ async def get_specialties():
 # No credentials configured — this is a portfolio project.
 
 
-@router.post("/register", response_model=TokenResponse, status_code=http_status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=TokenResponse, status_code=http_status.HTTP_201_CREATED
+)
 async def register(
     data: TenantRegister,
     db: AsyncSession = Depends(get_db),
@@ -50,7 +57,7 @@ async def register(
         tenant.email,
         tenant.doctor_name,
         tenant.specialty,
-        tenant.clinic_name
+        tenant.clinic_name,
     )
 
     token = create_access_token(tenant_id=tenant.id, email=tenant.email)
@@ -76,13 +83,18 @@ async def login(
     Consolidates functionality.
     """
     try:
-        result = await auth_service.authenticate_tenant(form_data.username, form_data.password, db)
-        logger.info("Login successful: email=%s, tenant_id=%s", form_data.username, result.tenant_id)
+        result = await auth_service.authenticate_tenant(
+            form_data.username, form_data.password, db
+        )
+        logger.info(
+            "Login successful: email=%s, tenant_id=%s",
+            form_data.username,
+            result.tenant_id,
+        )
         return result
     except Exception as e:
         logger.warning("Login failed: email=%s, reason=%s", form_data.username, str(e))
         raise
-
 
 
 @router.get("/me", response_model=TenantResponse)

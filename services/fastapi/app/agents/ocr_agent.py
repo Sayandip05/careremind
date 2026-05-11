@@ -129,7 +129,9 @@ class OcrAgent:
                 "rows": [],
                 "total_rows": 0,
                 "skipped": 0,
-                "errors": ["NVIDIA VLM returned empty — check NVIDIA_API_KEY and model availability"],
+                "errors": [
+                    "NVIDIA VLM returned empty — check NVIDIA_API_KEY and model availability"
+                ],
                 "raw_response": "",
                 "provider": "none",
             }
@@ -185,19 +187,26 @@ class OcrAgent:
             phone = normalize_phone(raw_phone) if raw_phone else None
             if not phone:
                 skipped += 1
-                errors.append(f"OCR row {i + 1}: invalid phone '{raw_phone}' for '{name}'")
+                errors.append(
+                    f"OCR row {i + 1}: invalid phone '{raw_phone}' for '{name}'"
+                )
                 continue
 
-            extracted.append({
-                "name": name,
-                "phone": phone,
-                "visit_date": parse_date(row.get("visit_date")),
-                "next_visit_date": parse_date(row.get("next_visit_date")),
-            })
+            extracted.append(
+                {
+                    "name": name,
+                    "phone": phone,
+                    "visit_date": parse_date(row.get("visit_date")),
+                    "next_visit_date": parse_date(row.get("next_visit_date")),
+                }
+            )
 
         logger.info(
             "OCR extraction (%s): %d rows extracted, %d skipped, %d errors",
-            provider, len(extracted), skipped, len(errors),
+            provider,
+            len(extracted),
+            skipped,
+            len(errors),
         )
 
         return {

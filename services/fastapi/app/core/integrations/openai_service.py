@@ -29,6 +29,7 @@ logger = logging.getLogger("careremind.services.openai")
 # Shared HTTP client (will be set by main.py lifespan)
 _http_client: Optional[httpx.AsyncClient] = None
 
+
 def set_http_client(client: httpx.AsyncClient):
     """Set the shared HTTP client for connection pooling."""
     global _http_client
@@ -59,7 +60,9 @@ class OpenAIService:
         messages.append({"role": "user", "content": prompt})
         return await self._request(messages)
 
-    async def vision(self, image_base64: str, prompt: str, system: str = "", model: str | None = None) -> str:
+    async def vision(
+        self, image_base64: str, prompt: str, system: str = "", model: str | None = None
+    ) -> str:
         """
         Send an image + prompt to OpenAI GPT-5 vision.
         Returns assistant's response text.
@@ -69,18 +72,20 @@ class OpenAIService:
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
-        messages.append({
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt},
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{image_base64}",
+        messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image_base64}",
+                        },
                     },
-                },
-            ],
-        })
+                ],
+            }
+        )
         return await self._request(messages, model=model)
 
     @retry(
@@ -93,7 +98,9 @@ class OpenAIService:
     async def _request(self, messages: list[dict], model: str | None = None) -> str:
         """Make a ChatCompletion API call. Falls back to self.model if model not specified."""
         if not self.api_key:
-            logger.warning("OPENAI_API_KEY not set — GPT-5 fallback disabled in this build")
+            logger.warning(
+                "OPENAI_API_KEY not set — GPT-5 fallback disabled in this build"
+            )
             return ""
 
         headers = {
@@ -108,13 +115,21 @@ class OpenAIService:
 
         try:
             if _http_client:
-                response = await _http_client.post(self.api_url, json=payload, headers=headers)
+                response = await _http_client.post(
+                    self.api_url, json=payload, headers=headers
+                )
             else:
-                async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_LONG) as client:
-                    response = await client.post(self.api_url, json=payload, headers=headers)
+                async with httpx.AsyncClient(
+                    timeout=settings.HTTP_TIMEOUT_LONG
+                ) as client:
+                    response = await client.post(
+                        self.api_url, json=payload, headers=headers
+                    )
 
             if response.status_code != 200:
-                logger.error("OpenAI API error %d: %s", response.status_code, response.text)
+                logger.error(
+                    "OpenAI API error %d: %s", response.status_code, response.text
+                )
                 return ""
 
             data = response.json()

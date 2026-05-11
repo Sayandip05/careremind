@@ -56,7 +56,7 @@ def build_ingestion_graph() -> StateGraph:
         {
             "extract_excel": "extract_excel",
             "extract_ocr": "extract_ocr",
-            "deduplicate": "deduplicate",   # bypass route
+            "deduplicate": "deduplicate",  # bypass route
             END: END,
         },
     )

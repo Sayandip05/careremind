@@ -71,7 +71,9 @@ async def _generate_for_tenant(tenant_id: str):
         counts = {}
         for status in ReminderStatus:
             result = await db.execute(
-                select(func.count()).select_from(Reminder).where(
+                select(func.count())
+                .select_from(Reminder)
+                .where(
                     Reminder.tenant_id == tenant_id,
                     Reminder.status == status,
                     func.date(Reminder.scheduled_at) == today,

@@ -23,7 +23,7 @@ class Orchestrator:
 
     async def process(
         self,
-        file_type: str,          # "excel" or "photo"
+        file_type: str,  # "excel" or "photo"
         file_bytes: bytes,
         tenant_id: str,
         db: AsyncSession,
@@ -55,7 +55,7 @@ class Orchestrator:
                     file_type=file_type,
                 ),
                 "tags": get_langsmith_tags("ingestion", file_type),
-            }
+            },
         )
 
         # Collect all errors

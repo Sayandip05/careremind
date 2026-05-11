@@ -18,6 +18,7 @@ from app.utils.phone_formatter import normalize_phone
 # authenticate_sso() deleted — no fastapi_sso credentials configured.
 # Normal email + bcrypt login is handled by authenticate_tenant() below.
 
+
 async def register_tenant(data: TenantRegister, db: AsyncSession) -> Tenant:
     """
     Register a new doctor account.
@@ -56,7 +57,7 @@ async def register_tenant(data: TenantRegister, db: AsyncSession) -> Tenant:
         hashed_password=get_password_hash(data.password),
         is_active=True,
     )
-    
+
     db.add(tenant)
     await db.flush()
 
@@ -71,12 +72,12 @@ async def register_tenant(data: TenantRegister, db: AsyncSession) -> Tenant:
                 f"Need help? Reply HELP anytime."
             )
             await whatsapp_service.send_message(
-                to=normalized_whatsapp,
-                message=welcome_message
+                to=normalized_whatsapp, message=welcome_message
             )
         except Exception as e:
             # Log but don't fail registration if WhatsApp fails
             import logging
+
             logging.getLogger("careremind.auth").warning(
                 "Failed to send welcome WhatsApp to %s: %s", normalized_whatsapp, e
             )
@@ -84,7 +85,9 @@ async def register_tenant(data: TenantRegister, db: AsyncSession) -> Tenant:
     return tenant
 
 
-async def authenticate_tenant(username: str, password: str, db: AsyncSession) -> TokenResponse:
+async def authenticate_tenant(
+    username: str, password: str, db: AsyncSession
+) -> TokenResponse:
     """
     Authenticate a doctor and return a JWT token.
     """
@@ -100,7 +103,7 @@ async def authenticate_tenant(username: str, password: str, db: AsyncSession) ->
 
     # Generate token
     token = create_access_token(tenant_id=tenant.id, email=tenant.email)
-    
+
     return TokenResponse(
         access_token=token,
         tenant_id=tenant.id,
@@ -112,7 +115,9 @@ async def authenticate_tenant(username: str, password: str, db: AsyncSession) ->
     )
 
 
-async def update_profile(tenant: Tenant, data: TenantUpdate, db: AsyncSession) -> Tenant:
+async def update_profile(
+    tenant: Tenant, data: TenantUpdate, db: AsyncSession
+) -> Tenant:
     """
     Update editable fields on a tenant profile.
     Only non-None fields from TenantUpdate are applied.

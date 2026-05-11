@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class ReminderResponse(BaseModel):
     """Schema for reminder data in API responses."""
+
     id: str
     appointment_id: str
     reminder_number: int
@@ -23,6 +24,7 @@ class ReminderResponse(BaseModel):
 
 class ReminderListResponse(BaseModel):
     """Paginated reminder list."""
+
     reminders: list[ReminderResponse]
     total: int
     page: int

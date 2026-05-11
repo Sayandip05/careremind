@@ -34,10 +34,7 @@ async def get_payment_history(
         # Paginated records
         offset = (page - 1) * per_page
         stmt = (
-            base_stmt
-            .order_by(Payment.created_at.desc())
-            .offset(offset)
-            .limit(per_page)
+            base_stmt.order_by(Payment.created_at.desc()).offset(offset).limit(per_page)
         )
         result = await db.execute(stmt)
         payments = result.scalars().all()
@@ -76,4 +73,3 @@ async def get_subscription_status(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch subscription status",
         )
-

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 class AppointmentCreate(BaseModel):
     """Schema for creating a new appointment."""
+
     patient_id: str
     visit_date: date
     next_visit_date: Optional[date] = None
@@ -16,6 +17,7 @@ class AppointmentCreate(BaseModel):
 
 class AppointmentResponse(BaseModel):
     """Schema for appointment data in API responses."""
+
     id: str
     patient_id: str
     visit_date: date
@@ -29,6 +31,7 @@ class AppointmentResponse(BaseModel):
 
 class AppointmentListResponse(BaseModel):
     """Paginated appointment list."""
+
     appointments: list[AppointmentResponse]
     total: int
     page: int

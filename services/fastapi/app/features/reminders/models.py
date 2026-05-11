@@ -24,11 +24,27 @@ class Reminder(Base):
     __tablename__ = "reminders"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    patient_id = Column(String, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True)
-    appointment_id = Column(String, ForeignKey("appointments.id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id = Column(
+        String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    patient_id = Column(
+        String,
+        ForeignKey("patients.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    appointment_id = Column(
+        String,
+        ForeignKey("appointments.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     reminder_number = Column(Integer, nullable=False, default=1)
-    status = Column(Enum(ReminderStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=ReminderStatus.PENDING)
+    status = Column(
+        Enum(ReminderStatus, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=ReminderStatus.PENDING,
+    )
     message_text = Column(Text)
     language_used = Column(String)
     channel = Column(String)  # 'whatsapp'
@@ -36,8 +52,15 @@ class Reminder(Base):
     sent_at = Column(DateTime(timezone=True))
     error_log = Column(Text)
     retry_count = Column(Integer, nullable=False, default=0)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
 
     # Relationships
     tenant = relationship("Tenant", back_populates="reminders")

@@ -45,19 +45,24 @@ async def distributed_lock(lock_name: str, timeout: int = 300):
         client = cache.client
         if not client:
             # Redis not available — fail-open so the job still runs
-            logger.warning("Redis unavailable, running '%s' job without distributed lock", lock_name)
+            logger.warning(
+                "Redis unavailable, running '%s' job without distributed lock",
+                lock_name,
+            )
             yield True
             return
 
         acquired = await client.set(
             lock_key,
             lock_value,
-            nx=True,   # Only set if key doesn't exist
-            ex=timeout, # Auto-expire after timeout seconds
+            nx=True,  # Only set if key doesn't exist
+            ex=timeout,  # Auto-expire after timeout seconds
         )
 
         if not acquired:
-            logger.info("Lock '%s' already held by another instance, skipping job", lock_name)
+            logger.info(
+                "Lock '%s' already held by another instance, skipping job", lock_name
+            )
             yield False
             return
 
@@ -86,9 +91,9 @@ async def distributed_lock(lock_name: str, timeout: int = 300):
 async def generate_daily_schedules_job():
     """
     Midnight job (12:00 AM IST) — Generate daily appointment PDFs.
-    
+
     Uses distributed locking to ensure only one instance runs this job.
-    
+
     For each active clinic location:
     1. Assign serial numbers to confirmed bookings
     2. Fetch all bookings for today
@@ -102,7 +107,7 @@ async def generate_daily_schedules_job():
 
         logger.info("Starting daily schedule generation job")
         today = date.today()
-    
+
         async with async_session() as db:
             try:
                 result = await db.execute(
@@ -139,7 +144,9 @@ async def generate_daily_schedules_job():
                         )
 
                         if not pdf_url:
-                            logger.error("Failed to generate PDF for clinic %s", clinic.id)
+                            logger.error(
+                                "Failed to generate PDF for clinic %s", clinic.id
+                            )
                             continue
 
                         schedule = DailySchedule(
@@ -172,18 +179,22 @@ async def generate_daily_schedules_job():
                             else:
                                 logger.warning(
                                     "Failed to send schedule to doctor %s: %s",
-                                    tenant.id, wa_result.get("error"),
+                                    tenant.id,
+                                    wa_result.get("error"),
                                 )
 
                         logger.info(
                             "Generated schedule for clinic %s: %d bookings",
-                            clinic.clinic_name, len(bookings),
+                            clinic.clinic_name,
+                            len(bookings),
                         )
 
                     except Exception as exc:
                         logger.error(
                             "Failed to generate schedule for clinic %s: %s",
-                            clinic.id, exc, exc_info=True,
+                            clinic.id,
+                            exc,
+                            exc_info=True,
                         )
                         continue
 
@@ -204,7 +215,9 @@ async def cleanup_expired_reservations_job():
     Finds all bookings with status=RESERVED and expires_at < now,
     then updates status to EXPIRED.
     """
-    async with distributed_lock("cleanup_expired_reservations", timeout=120) as acquired:
+    async with distributed_lock(
+        "cleanup_expired_reservations", timeout=120
+    ) as acquired:
         if not acquired:
             return  # Another instance is already running this job
 
@@ -219,7 +232,9 @@ async def cleanup_expired_reservations_job():
                     logger.info("Cleaned up %d expired reservations", cancelled_count)
 
             except Exception as exc:
-                logger.error("Expired reservation cleanup failed: %s", exc, exc_info=True)
+                logger.error(
+                    "Expired reservation cleanup failed: %s", exc, exc_info=True
+                )
                 await db.rollback()
 
 
@@ -228,6 +243,7 @@ async def cleanup_expired_reservations_job():
 # The actual task logic lives in app/worker/tasks/.
 # Using send_task() by name so the scheduler does not need to import
 # the celery_app at module load time (avoids circular deps).
+
 
 async def dispatch_send_pending_reminders():
     """
@@ -256,9 +272,7 @@ async def dispatch_generate_daily_summary():
         )
         logger.info("Dispatched generate_daily_summary — task id: %s", result.id)
     except Exception as e:
-        logger.error(
-            "Failed to dispatch generate_daily_summary: %s", e, exc_info=True
-        )
+        logger.error("Failed to dispatch generate_daily_summary: %s", e, exc_info=True)
 
 
 async def dispatch_retry_failed_reminders():
@@ -271,13 +285,9 @@ async def dispatch_retry_failed_reminders():
         result = celery_app.send_task(
             "app.worker.tasks.reminder_tasks.retry_failed_reminders"
         )
-        logger.info(
-            "Dispatched retry_failed_reminders — task id: %s", result.id
-        )
+        logger.info("Dispatched retry_failed_reminders — task id: %s", result.id)
     except Exception as e:
-        logger.error(
-            "Failed to dispatch retry_failed_reminders: %s", e, exc_info=True
-        )
+        logger.error("Failed to dispatch retry_failed_reminders: %s", e, exc_info=True)
 
 
 async def dispatch_midnight_cleanup():
@@ -288,15 +298,14 @@ async def dispatch_midnight_cleanup():
     try:
         from app.worker.celery_app import celery_app
 
-        r1 = celery_app.send_task(
-            "app.worker.tasks.cleanup_tasks.cleanup_old_uploads"
-        )
+        r1 = celery_app.send_task("app.worker.tasks.cleanup_tasks.cleanup_old_uploads")
         r2 = celery_app.send_task(
             "app.worker.tasks.cleanup_tasks.cleanup_expired_reminders"
         )
         logger.info(
             "Dispatched cleanup tasks — uploads: %s, reminders: %s",
-            r1.id, r2.id,
+            r1.id,
+            r2.id,
         )
     except Exception as e:
         logger.error("Failed to dispatch cleanup tasks: %s", e, exc_info=True)
@@ -360,4 +369,3 @@ SCHEDULED_JOBS = [
         "replace_existing": True,
     },
 ]
-

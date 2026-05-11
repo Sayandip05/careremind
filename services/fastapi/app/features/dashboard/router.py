@@ -21,6 +21,7 @@ logger = logging.getLogger("careremind.dashboard")
 
 router = APIRouter()
 
+
 @router.get("/stats")
 async def get_dashboard_stats(
     tenant: Tenant = Depends(get_current_tenant),
@@ -34,7 +35,7 @@ async def get_dashboard_stats(
     try:
         tenant_id = str(tenant.id)
         cache_key = f"dashboard_stats:{tenant_id}"
-        
+
         # 1. Attempt Cache Retrieval
         try:
             cached_data = await cache.get(cache_key)

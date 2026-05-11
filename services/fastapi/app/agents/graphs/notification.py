@@ -39,7 +39,6 @@ def _should_continue_after_decrypt(state: NotificationState) -> str:
     return "generate_message"
 
 
-
 def build_notification_graph() -> StateGraph:
     """
     Build and compile the notification state graph.

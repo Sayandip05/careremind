@@ -15,19 +15,40 @@ class Patient(Base):
     __tablename__ = "patients"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id = Column(
+        String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     name = Column(String, nullable=False)
     phone_encrypted = Column(String, nullable=False)
-    phone_hash = Column(String, nullable=False, index=True)  # Deterministic hash for dedup
-    preferred_channel = Column(Enum(PreferredChannel, values_callable=lambda x: [e.value for e in x]), nullable=False, default=PreferredChannel.WHATSAPP)
+    phone_hash = Column(
+        String, nullable=False, index=True
+    )  # Deterministic hash for dedup
+    preferred_channel = Column(
+        Enum(PreferredChannel, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=PreferredChannel.WHATSAPP,
+    )
     has_whatsapp = Column(Boolean, default=False)
     language_preference = Column(String)
     is_optout = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
 
     # Relationships
     tenant = relationship("Tenant", back_populates="patients")
-    appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
-    reminders = relationship("Reminder", back_populates="patient", cascade="all, delete-orphan")
-    bookings = relationship("Booking", back_populates="patient", cascade="all, delete-orphan")
+    appointments = relationship(
+        "Appointment", back_populates="patient", cascade="all, delete-orphan"
+    )
+    reminders = relationship(
+        "Reminder", back_populates="patient", cascade="all, delete-orphan"
+    )
+    bookings = relationship(
+        "Booking", back_populates="patient", cascade="all, delete-orphan"
+    )

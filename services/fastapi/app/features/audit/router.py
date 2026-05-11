@@ -43,8 +43,7 @@ async def get_audit_logs(
         # Fetch paginated records
         offset = (page - 1) * per_page
         stmt = (
-            base_stmt
-            .order_by(AuditLog.created_at.desc())
+            base_stmt.order_by(AuditLog.created_at.desc())
             .offset(offset)
             .limit(per_page)
         )
@@ -63,4 +62,3 @@ async def get_audit_logs(
     except Exception as e:
         logger.error("Failed to fetch audit logs: %s", e)
         raise HTTPException(status_code=500, detail="Failed to fetch audit logs")
-

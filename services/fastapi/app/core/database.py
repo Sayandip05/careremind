@@ -12,6 +12,7 @@ _is_sqlite = settings.DATABASE_URL.startswith("sqlite")
 
 if _is_sqlite:
     from sqlalchemy.pool import NullPool
+
     engine = create_async_engine(
         settings.DATABASE_URL,
         echo=False,
@@ -22,11 +23,11 @@ else:
         settings.DATABASE_URL,
         pool_size=settings.DB_POOL_SIZE,
         max_overflow=settings.DB_MAX_OVERFLOW,
-        pool_pre_ping=True,   # detect stale connections
-        pool_recycle=3600,    # recycle connections every hour
+        pool_pre_ping=True,  # detect stale connections
+        pool_recycle=3600,  # recycle connections every hour
         echo=not settings.is_production,
         connect_args={
-            "timeout": 10,    # connection timeout (seconds)
+            "timeout": 10,  # connection timeout (seconds)
             "command_timeout": 30,  # query timeout (seconds)
         },
     )

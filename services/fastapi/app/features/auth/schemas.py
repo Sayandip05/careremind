@@ -6,8 +6,10 @@ from pydantic import BaseModel, EmailStr, Field
 
 # ── Registration & Auth ──────────────────────────────────────
 
+
 class TenantRegister(BaseModel):
     """Schema for doctor registration."""
+
     doctor_name: str = Field(..., min_length=2, max_length=100)
     clinic_name: str = Field(..., min_length=2, max_length=200)
     email: EmailStr
@@ -23,9 +25,9 @@ class TenantRegister(BaseModel):
     state: Optional[str] = None
 
 
-
 class TokenResponse(BaseModel):
     """JWT token response — includes user data so frontend doesn't need a second call."""
+
     access_token: str
     token_type: str = "bearer"
     tenant_id: str
@@ -38,15 +40,17 @@ class TokenResponse(BaseModel):
 
 class TenantLogin(BaseModel):
     """Schema for doctor login."""
+
     email: EmailStr
     password: str
 
 
-
 # ── Tenant CRUD ──────────────────────────────────────────────
+
 
 class TenantUpdate(BaseModel):
     """Schema for updating tenant profile."""
+
     doctor_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
     clinic_name: Optional[str] = Field(default=None, min_length=2, max_length=200)
     phone: Optional[str] = None
@@ -62,6 +66,7 @@ class TenantUpdate(BaseModel):
 
 class TenantResponse(BaseModel):
     """Schema for tenant data in API responses."""
+
     id: str
     doctor_name: str
     clinic_name: str

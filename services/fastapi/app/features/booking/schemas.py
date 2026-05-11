@@ -10,12 +10,14 @@ from app.features.booking.models import BookingStatus, PaymentStatus
 
 class SlotAvailabilityRequest(BaseModel):
     """Request to check available slots for a specific date and clinic."""
+
     clinic_location_id: str
     booking_date: date
 
 
 class ReserveSlotRequest(BaseModel):
     """Request to reserve a slot (temporary hold for 10 minutes)."""
+
     clinic_location_id: str
     booking_date: date
     slot_time: time
@@ -24,6 +26,7 @@ class ReserveSlotRequest(BaseModel):
 
 class ConfirmBookingRequest(BaseModel):
     """Request to confirm a booking after payment."""
+
     booking_id: str
     razorpay_payment_id: str
     razorpay_order_id: str
@@ -32,6 +35,7 @@ class ConfirmBookingRequest(BaseModel):
 
 class CancelBookingRequest(BaseModel):
     """Request to cancel a booking."""
+
     booking_id: str
     reason: Optional[str] = None
 
@@ -41,6 +45,7 @@ class CancelBookingRequest(BaseModel):
 
 class SlotResponse(BaseModel):
     """Available slot information."""
+
     slot_time: time
     is_available: bool
     booking_count: int = 0
@@ -51,6 +56,7 @@ class SlotResponse(BaseModel):
 
 class ClinicLocationResponse(BaseModel):
     """Clinic location information for booking."""
+
     id: str
     clinic_name: str
     address_line: str
@@ -64,6 +70,7 @@ class ClinicLocationResponse(BaseModel):
 
 class BookingResponse(BaseModel):
     """Booking information."""
+
     id: str
     tenant_id: str
     patient_id: str
@@ -85,6 +92,7 @@ class BookingResponse(BaseModel):
 
 class ReserveSlotResponse(BaseModel):
     """Response after reserving a slot."""
+
     booking: BookingResponse
     razorpay_order_id: str
     razorpay_key_id: str
@@ -95,6 +103,7 @@ class ReserveSlotResponse(BaseModel):
 
 class ConfirmBookingResponse(BaseModel):
     """Response after confirming a booking."""
+
     booking: BookingResponse
     message: str
     pdf_bill_url: Optional[str] = None
@@ -102,6 +111,7 @@ class ConfirmBookingResponse(BaseModel):
 
 class DailyScheduleResponse(BaseModel):
     """Daily schedule information."""
+
     id: str
     schedule_date: date
     pdf_url: Optional[str] = None
@@ -115,10 +125,10 @@ class DailyScheduleResponse(BaseModel):
 
 class BookingStatsResponse(BaseModel):
     """Booking statistics for dashboard."""
+
     total_bookings: int
     confirmed_bookings: int
     pending_bookings: int
     cancelled_bookings: int
     revenue_today: float
     revenue_this_month: float
-

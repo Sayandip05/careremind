@@ -91,9 +91,7 @@ async def get_patient(
     Get a single patient by ID.
     IDOR protection: verifies patient belongs to the requesting tenant.
     """
-    result = await db.execute(
-        select(Patient).where(Patient.id == patient_id)
-    )
+    result = await db.execute(select(Patient).where(Patient.id == patient_id))
     patient = result.scalar_one_or_none()
 
     if not patient:
@@ -146,6 +144,6 @@ async def delete_patient(
     Cascades delete via SQLAlchemy relationships.
     """
     patient = await get_patient(tenant_id, patient_id, db)
-    
+
     await db.delete(patient)
     await db.flush()
