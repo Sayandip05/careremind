@@ -25,7 +25,7 @@ jobs:
       DATABASE_URL: "sqlite+aiosqlite:///./test.db"
       UPSTASH_REDIS_URL: "redis://localhost:6379"
       JWT_SECRET_KEY: "ci-test-secret-key-minimum-32-chars-long"
-      FIELD_ENCRYPTION_KEY: "dGVzdC1rZXktMzItYnl0ZXMtbG9uZy1mb3ItY2k="
+      FIELD_ENCRYPTION_KEY: "cNqjNonaE7gSQLUUKNe8RasEbiCDhwGnnHmPbWqrE7w="
       SUPABASE_URL: "https://placeholder.supabase.co"
       SUPABASE_KEY: "placeholder"
       ENVIRONMENT: "testing"
