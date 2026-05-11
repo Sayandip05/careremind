@@ -11,6 +11,9 @@ import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
+from app.core.config import settings
+from app.core.database import get_db
+from app.core.langsmith import initialize_langsmith
 from app.features.auth.router import router as auth_router
 from app.features.patients.router import router as patients_router
 from app.features.appointments.router import router as appointments_router
@@ -23,8 +26,6 @@ from app.features.webhooks.router import router as webhooks_router
 from app.features.clinics.router import router as clinics_router
 from app.features.booking.router import router as booking_router
 from app.features.contact.router import router as contact_router
-from app.core.config import settings
-from app.core.database import get_db
 from app.middleware.auth import AuthMiddleware
 from app.middleware.tenant_context import TenantContextMiddleware
 from app.middleware.rate_limiter import RateLimiterMiddleware
@@ -32,6 +33,13 @@ from app.middleware.audit_logger import AuditLogger
 from app.middleware.input_sanitizer import SecurityHeadersMiddleware
 from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.middleware.timeout import TimeoutMiddleware
+
+# ── Logging (must be configured before anything that calls logger) ───────
+logging.basicConfig(
+    level=logging.INFO if settings.is_production else logging.DEBUG,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+)
+logger = logging.getLogger("careremind")
 
 # ── Sentry Initialization ────────────────────────────────────
 if settings.ENABLE_SENTRY and settings.SENTRY_DSN:
@@ -48,17 +56,9 @@ if settings.ENABLE_SENTRY and settings.SENTRY_DSN:
     logger.info("Sentry monitoring enabled")
 
 # ── LangSmith Initialization ─────────────────────────────────
-from app.core.langsmith import initialize_langsmith
-
 if initialize_langsmith():
     logger.info("LangSmith agent tracing enabled")
 
-# ── Logging ──────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO if settings.is_production else logging.DEBUG,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-)
-logger = logging.getLogger("careremind")
 
 
 # ── Lifespan (startup/shutdown) ──────────────────────────────

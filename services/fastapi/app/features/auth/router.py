@@ -4,11 +4,14 @@ Note: Social OAuth (Google / Facebook) is intentionally disabled.
 """
 
 import logging
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, status as http_status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import get_current_tenant
+from app.core.security import create_access_token, get_current_tenant
 from app.features.auth.models import Tenant
 from app.features.auth.schemas import TenantResponse, TenantUpdate, TenantRegister, TokenResponse
 from app.features.auth import service as auth_service
@@ -32,8 +35,6 @@ async def get_specialties():
 # No credentials configured — this is a portfolio project.
 
 
-from fastapi import status as http_status
-
 @router.post("/register", response_model=TokenResponse, status_code=http_status.HTTP_201_CREATED)
 async def register(
     data: TenantRegister,
@@ -51,11 +52,9 @@ async def register(
         tenant.specialty,
         tenant.clinic_name
     )
-    
-    # Generate token for immediate login
-    from app.core.security import create_access_token
+
     token = create_access_token(tenant_id=tenant.id, email=tenant.email)
-    
+
     return TokenResponse(
         access_token=token,
         tenant_id=tenant.id,
@@ -66,9 +65,6 @@ async def register(
         plan=tenant.plan.value if tenant.plan else "free",
     )
 
-
-from fastapi.security import OAuth2PasswordRequestForm
-from typing import Annotated
 
 @router.post("/login", response_model=TokenResponse)
 async def login(

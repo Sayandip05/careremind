@@ -7,8 +7,6 @@ import logging
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger("careremind.patients")
-
 from app.core.database import get_db
 from app.core.security import get_current_tenant
 from app.features.auth.models import Tenant
@@ -19,6 +17,8 @@ from app.features.patients.schemas import (
     PatientUpdate,
 )
 from app.features.patients import service as patient_service
+
+logger = logging.getLogger("careremind.patients")
 
 router = APIRouter()
 

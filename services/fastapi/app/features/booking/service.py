@@ -159,7 +159,7 @@ class BookingService:
             
             return booking
             
-        except IntegrityError as e:
+        except IntegrityError:
             # Race condition: Another user booked this slot simultaneously
             # Database constraint prevented double-booking
             logger.info(

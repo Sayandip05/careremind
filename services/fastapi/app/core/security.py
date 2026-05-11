@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 import hmac
 import hashlib
@@ -14,6 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+
+if TYPE_CHECKING:
+    from app.features.auth.models import Tenant
 
 from pwdlib import PasswordHash
 

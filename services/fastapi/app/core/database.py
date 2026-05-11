@@ -6,20 +6,30 @@ from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 
 # ── Async Engine ─────────────────────────────────────────────
-# Supabase PostgreSQL via asyncpg driver.
-# The DATABASE_URL must use the "postgresql+asyncpg://" prefix.
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_pre_ping=True,  # detect stale connections
-    pool_recycle=3600,  # recycle connections every hour
-    echo=not settings.is_production,  # SQL logging in dev only
-    connect_args={
-        "timeout": 10,  # connection timeout (seconds)
-        "command_timeout": 30,  # query timeout (seconds)
-    }
-)
+# Production: Supabase PostgreSQL via asyncpg driver.
+# CI / Testing: SQLite via aiosqlite (NullPool — no pool args allowed).
+_is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+
+if _is_sqlite:
+    from sqlalchemy.pool import NullPool
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=False,
+        poolclass=NullPool,
+    )
+else:
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        pool_size=settings.DB_POOL_SIZE,
+        max_overflow=settings.DB_MAX_OVERFLOW,
+        pool_pre_ping=True,   # detect stale connections
+        pool_recycle=3600,    # recycle connections every hour
+        echo=not settings.is_production,
+        connect_args={
+            "timeout": 10,    # connection timeout (seconds)
+            "command_timeout": 30,  # query timeout (seconds)
+        },
+    )
 
 # ── Session Factory ──────────────────────────────────────────
 AsyncSessionLocal = async_sessionmaker(

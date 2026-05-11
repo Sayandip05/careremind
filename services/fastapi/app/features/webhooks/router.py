@@ -4,13 +4,15 @@ Handles opt-out (STOP) messages AND incoming files (images, documents) from doct
 """
 
 import base64
+import hashlib
+import hmac
 import logging
 import uuid
 from typing import Optional
 
 import httpx
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -121,8 +123,6 @@ async def _handle_whatsapp_image(
     message: dict, sender: str, db: AsyncSession, phone_number_id: str
 ):
     """Handle incoming image - download, process with OCR."""
-    import uuid
-    
     try:
         media_id = message.get("image", {}).get("id")
         if not media_id:
@@ -184,8 +184,6 @@ async def _handle_whatsapp_document(
     message: dict, sender: str, db: AsyncSession, phone_number_id: str
 ):
     """Handle incoming document - download, process with Excel parser."""
-    import uuid
-    
     try:
         doc = message.get("document", {})
         media_id = doc.get("id")
@@ -363,13 +361,9 @@ async def _handle_optout(phone_raw: str, db: AsyncSession):
     )
 
 
-import hmac
-import hashlib
-from fastapi import Header
-
 @router.post("/razorpay")
 async def razorpay_webhook(
-    request: Request, 
+    request: Request,
     x_razorpay_signature: str = Header(None)
 ):
     """Razorpay payment webhook — securely verified via HMAC."""

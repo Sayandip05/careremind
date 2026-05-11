@@ -150,7 +150,7 @@ class PDFGenerator:
                 spaceAfter=10,
                 alignment=1,
             )
-            story.append(Paragraph(f"Daily Appointment Schedule", title_style))
+            story.append(Paragraph("Daily Appointment Schedule", title_style))
             
             # Date and clinic
             subtitle_style = ParagraphStyle(
@@ -184,7 +184,7 @@ class PDFGenerator:
                     try:
                         phone = encryption_service.decrypt(booking.patient.phone_encrypted)
                         phone_display = f"...{phone[-4:]}"  # Show last 4 digits only
-                    except:
+                    except Exception:
                         phone_display = "N/A"
                     
                     booking_data.append([

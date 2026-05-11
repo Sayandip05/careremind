@@ -2,26 +2,24 @@
 Dashboard routes — Aggregated stats in a single DB query.
 """
 
+import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import cache
 from app.core.database import get_db
 from app.core.security import get_current_tenant
+from app.features.auth.models import Tenant
 from app.features.patients.models import Patient
 from app.features.reminders.models import Reminder, ReminderStatus
 from app.features.upload.models import UploadLog
-from app.features.auth.models import Tenant
 
 logger = logging.getLogger("careremind.dashboard")
 
 router = APIRouter()
-
-
-from app.core.cache import cache
-import json
 
 @router.get("/stats")
 async def get_dashboard_stats(
