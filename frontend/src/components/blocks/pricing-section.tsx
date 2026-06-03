@@ -1,37 +1,38 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ArrowRightIcon, CheckIcon } from "@radix-ui/react-icons"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRightIcon, CheckIcon } from "@radix-ui/react-icons";
+import { cn } from "@/lib/utils";
 
 interface Feature {
-  name: string
-  description: string
-  included: boolean
+  name: string;
+  description: string;
+  included: boolean;
 }
 
 interface PricingTier {
-  name: string
+  name: string;
   price: {
-    monthly: number
-    yearly: number
-  }
-  description: string
-  features: Feature[]
-  highlight?: boolean
-  badge?: string
-  icon: React.ReactNode
+    monthly: number;
+    yearly: number;
+  };
+  description: string;
+  features: Feature[];
+  highlight?: boolean;
+  badge?: string;
+  icon: React.ReactNode;
 }
 
 interface PricingSectionProps {
-  tiers: PricingTier[]
-  className?: string
+  tiers: PricingTier[];
+  className?: string;
 }
 
 function PricingSection({ tiers, className }: PricingSectionProps) {
-  const [isYearly, setIsYearly] = useState(false)
+  const [isYearly, setIsYearly] = useState(false);
 
   const buttonStyles = {
     default: cn(
@@ -51,14 +52,14 @@ function PricingSection({ tiers, className }: PricingSectionProps) {
       "hover:shadow-[0_1px_20px_rgba(37,99,235,0.3)]",
       "font-semibold text-base",
     ),
-  }
+  };
 
   const badgeStyles = cn(
     "px-4 py-1.5 text-sm font-medium",
     "bg-green-600",
     "text-white",
     "border-none shadow-sm",
-  )
+  );
 
   return (
     <section
@@ -71,12 +72,18 @@ function PricingSection({ tiers, className }: PricingSectionProps) {
     >
       <div className="w-full max-w-5xl mx-auto">
         <div className="flex flex-col items-center gap-4 mb-10 text-center">
-          <Badge variant="outline" className="bg-white text-green-600 border-green-300">Pricing</Badge>
+          <Badge
+            variant="outline"
+            className="bg-white text-green-600 border-green-300"
+          >
+            Pricing
+          </Badge>
           <h2 className="text-3xl font-bold text-black">
             Simple, transparent pricing
           </h2>
           <p className="text-black max-w-xl">
-            Choose the perfect plan for your clinic. No hidden fees, cancel anytime.
+            Choose the perfect plan for your clinic. No hidden fees, cancel
+            anytime.
           </p>
           <div className="mt-4 inline-flex items-center p-1.5 bg-slate-50 rounded-full border border-slate-200 shadow-sm">
             {["Monthly", "Yearly"].map((period) => (
@@ -96,7 +103,14 @@ function PricingSection({ tiers, className }: PricingSectionProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div
+          className={cn(
+            "grid gap-8",
+            tiers.length === 1
+              ? "max-w-md mx-auto grid-cols-1"
+              : "grid-cols-1 md:grid-cols-2",
+          )}
+        >
           {tiers.map((tier) => (
             <div
               key={tier.name}
@@ -204,7 +218,7 @@ function PricingSection({ tiers, className }: PricingSectionProps) {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
-export { PricingSection }
+export { PricingSection };
