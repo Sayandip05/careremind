@@ -166,7 +166,7 @@ export default function Upload() {
           skipped: (acc.skipped || 0) + (d.skipped || 0),
           errors: [...(acc.errors || []), ...(d.errors || [])],
         };
-      }, { total_rows: 0, new_patients: 0, duplicates: 0, skipped: 0, errors: [] });
+      }, { total_rows: 0, new_patients: 0, duplicates: 0, skipped: 0, errors: [] as any[] });
 
       setResult(aggregated);
       setStage('done');
@@ -313,7 +313,8 @@ export default function Upload() {
       {/* ── REVIEW STAGE (Human-in-the-Loop) ── */}
       {stage === 'review' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          {/* Review header — stacks on mobile, side-by-side on sm+ */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-sm font-semibold text-slate-800">
                 Review Extracted Patients
@@ -326,13 +327,13 @@ export default function Upload() {
                 Review, edit, or remove rows before saving.
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 flex-wrap">
               {reviewRows.length > 0 && (
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-500">Set date for all:</span>
+                  <span className="text-slate-500 whitespace-nowrap">Set date for all:</span>
                   <input
                     type="date"
-                    className="border border-slate-200 rounded px-2 py-1 text-slate-700 bg-white"
+                    className="border border-slate-200 rounded px-2 py-1 text-slate-700 bg-white min-w-0"
                     value={bulkDate}
                     onChange={(e) => {
                       const d = e.target.value;
@@ -342,7 +343,7 @@ export default function Upload() {
                   />
                 </div>
               )}
-              <button onClick={reset} className="text-xs text-slate-400 hover:text-slate-600">
+              <button onClick={reset} className="text-xs text-slate-400 hover:text-slate-600 ml-auto sm:ml-0">
                 Cancel
               </button>
             </div>
@@ -361,8 +362,10 @@ export default function Upload() {
               <button onClick={reset} className="mt-2 text-slate-600 underline text-xs">Upload a different photo</button>
             </div>
           ) : (
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
+            <>
+            {/* Table — scrolls horizontally on narrow screens */}
+            <div className="border border-slate-200 rounded-lg overflow-x-auto">
+              <table className="w-full text-sm min-w-[520px]">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 w-8"></th>
@@ -441,6 +444,7 @@ export default function Upload() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {/* Confirm bar */}
@@ -491,7 +495,7 @@ export default function Upload() {
               Upload another
             </button>
           </div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { label: 'Total Rows', value: result.total_rows ?? result.total_extracted ?? 0 },
               { label: 'New Patients', value: result.new_patients ?? 0 },

@@ -77,14 +77,15 @@ export default function Admin() {
       {/* Tenants Table */}
       <div>
         <h2 className="text-sm font-medium text-slate-700 mb-3">Registered Doctors</h2>
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+        {/* Scrollable on mobile */}
+        <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+          <table className="w-full text-sm min-w-[560px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-500">Doctor</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-500">Clinic</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500">Email</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500">Specialty</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 text-xs font-medium text-slate-500">Email</th>
+                <th className="hidden md:table-cell text-left px-4 py-3 text-xs font-medium text-slate-500">Specialty</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-500">Plan</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-500">Joined</th>
               </tr>
@@ -96,8 +97,8 @@ export default function Admin() {
                 <tr key={t.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-slate-700">{t.doctor_name}</td>
                   <td className="px-4 py-3 text-slate-500">{t.clinic_name}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{t.email}</td>
-                  <td className="px-4 py-3 text-slate-500 capitalize">{t.specialty || '—'}</td>
+                  <td className="hidden md:table-cell px-4 py-3 text-slate-500 text-xs">{t.email}</td>
+                  <td className="hidden md:table-cell px-4 py-3 text-slate-500 capitalize">{t.specialty || '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded font-medium ${
                       t.plan === 'pro' ? 'bg-blue-50 text-blue-700' :
@@ -107,7 +108,7 @@ export default function Admin() {
                       {t.plan}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-400">
+                  <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
                     {new Date(t.created_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
                   </td>
                 </tr>

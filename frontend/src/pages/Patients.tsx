@@ -188,7 +188,7 @@ export default function Bookings() {
       </div>
 
       {/* Filters + Actions */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         {/* Date picker */}
         <div className="relative flex items-center">
           <CalendarDays className="absolute left-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
@@ -209,7 +209,7 @@ export default function Bookings() {
             id="clinic-filter"
             value={selectedClinic}
             onChange={(e) => setSelectedClinic(e.target.value)}
-            className="pl-8 pr-8 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-shadow appearance-none min-w-[180px]"
+            className="pl-8 pr-8 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-shadow appearance-none min-w-[140px]"
           >
             <option value="">All Clinics</option>
             {clinics.map((c) => (
@@ -229,12 +229,12 @@ export default function Bookings() {
           Refresh
         </button>
 
-        {/* Download PDF */}
+        {/* Download PDF — full-width on mobile, auto on sm+ */}
         <button
           id="download-pdf-btn"
           onClick={handleDownload}
           disabled={downloading}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors ml-auto"
+          className="flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors w-full sm:w-auto sm:ml-auto"
         >
           {downloading
             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -270,8 +270,8 @@ export default function Bookings() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      {/* Table — horizontal scroll on small screens */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
@@ -285,14 +285,14 @@ export default function Bookings() {
             </p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">#</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Time</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Patient Name</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Clinic</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Location</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 text-xs font-semibold text-slate-500">Location</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500">Status</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500">Amount</th>
               </tr>
@@ -323,8 +323,8 @@ export default function Bookings() {
                   {/* Clinic name */}
                   <td className="px-4 py-3 text-slate-600">{b.clinic_name}</td>
 
-                  {/* Location */}
-                  <td className="px-4 py-3 text-slate-400 text-xs max-w-[200px] truncate">
+                  {/* Location — hidden on xs */}
+                  <td className="hidden sm:table-cell px-4 py-3 text-slate-400 text-xs max-w-[200px] truncate">
                     {b.clinic_address}
                   </td>
 

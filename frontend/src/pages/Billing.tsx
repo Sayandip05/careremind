@@ -87,9 +87,9 @@ export default function Billing() {
 
       {/* Subscription Status Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
               <CreditCard className="w-5 h-5 text-slate-600" />
             </div>
             <div>
@@ -164,32 +164,38 @@ export default function Billing() {
           </div>
         ) : (
           <>
-            <div className="divide-y divide-slate-100">
-              {/* Table header */}
-              <div className="px-6 py-2.5 grid grid-cols-4 text-xs font-medium text-slate-400 uppercase tracking-wide bg-slate-50">
-                <span>Date</span>
-                <span>Description</span>
-                <span>Amount</span>
-                <span>Status</span>
-              </div>
-              {payments?.data.map((payment) => {
-                const statusCfg = STATUS_CONFIG[payment.status] ?? STATUS_CONFIG.pending;
-                return (
-                  <div key={payment.id} className="px-6 py-4 grid grid-cols-4 items-center text-sm">
-                    <span className="text-slate-500 text-xs">{formatDate(payment.created_at)}</span>
-                    <span className="text-slate-700 font-medium truncate pr-4">
-                      {payment.description || 'Payment'}
-                    </span>
-                    <span className="text-slate-800 font-semibold">
-                      {formatAmount(payment.amount, payment.currency)}
-                    </span>
-                    <span className={`flex items-center gap-1 font-medium ${statusCfg.color}`}>
-                      {statusCfg.icon}
-                      {statusCfg.label}
-                    </span>
-                  </div>
-                );
-              })}
+            {/* Scrollable table wrapper */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[480px]">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50">
+                    <th className="text-left px-6 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wide">Date</th>
+                    <th className="text-left px-6 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wide">Description</th>
+                    <th className="text-left px-6 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wide">Amount</th>
+                    <th className="text-left px-6 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wide">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payments?.data.map((payment) => {
+                    const statusCfg = STATUS_CONFIG[payment.status] ?? STATUS_CONFIG.pending;
+                    return (
+                      <tr key={payment.id}>
+                        <td className="px-6 py-4 text-slate-500 text-xs whitespace-nowrap">{formatDate(payment.created_at)}</td>
+                        <td className="px-6 py-4 text-slate-700 font-medium max-w-[200px] truncate pr-4">
+                          {payment.description || 'Payment'}
+                        </td>
+                        <td className="px-6 py-4 text-slate-800 font-semibold whitespace-nowrap">
+                          {formatAmount(payment.amount, payment.currency)}
+                        </td>
+                        <td className={`px-6 py-4 flex items-center gap-1 font-medium ${statusCfg.color}`}>
+                          {statusCfg.icon}
+                          {statusCfg.label}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
             {/* Pagination */}
