@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { remindersApi } from '@/api/reminders';
+import { useGuestMode } from '@/context/GuestModeContext';
+import { demoReminders } from '@/data/demoData';
 import { MessageSquare, Smartphone } from 'lucide-react';
 
 interface Reminder {
@@ -15,6 +17,7 @@ interface Reminder {
 const filters = ['All', 'Pending', 'Sent', 'Failed', 'Optout'];
 
 export default function Reminders() {
+  const { isGuest } = useGuestMode();
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -22,12 +25,22 @@ export default function Reminders() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isGuest) {
+      // Filter demo reminders by status for guests
+      const filtered = filter === 'All'
+        ? demoReminders
+        : demoReminders.filter((r) => r.status === filter);
+      setReminders(filtered as Reminder[]);
+      setTotal(filtered.length);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     remindersApi.list(page, 20, filter === 'All' ? undefined : filter)
       .then((res) => { setReminders(res.data.reminders); setTotal(res.data.total); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [page, filter]);
+  }, [page, filter, isGuest]);
 
   const totalPages = Math.ceil(total / 20);
 

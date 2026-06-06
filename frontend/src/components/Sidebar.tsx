@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { useGuestMode } from '@/context/GuestModeContext';
 import {
   LayoutDashboard,
   Upload,
@@ -10,6 +11,7 @@ import {
   Settings,
   CreditCard,
   CalendarCheck,
+  UserPlus,
 } from 'lucide-react';
 
 const navItems = [
@@ -29,6 +31,7 @@ interface SidebarProps {
 
 export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
+  const { isGuest } = useGuestMode();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -109,28 +112,42 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           })}
         </nav>
 
-        {/* User info + logout */}
+        {/* User info + action */}
         <div className="px-3 py-3 border-t border-slate-100">
-          <div className="flex items-center gap-2.5 px-3 py-2 mb-1">
-            <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-600">
-              {user?.doctor_name?.charAt(0)?.toUpperCase() || 'D'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-slate-700 truncate">
-                {user?.doctor_name || 'Doctor'}
-              </p>
-              <p className="text-[11px] text-slate-400 truncate">
-                {user?.clinic_name || 'Clinic'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign out
-          </button>
+          {isGuest ? (
+            // Guest: show a sign-up CTA
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full flex items-center gap-2 px-3 py-2 text-[13px] font-medium text-[#1E5F3A] hover:bg-green-50 rounded-md transition-colors"
+            >
+              <UserPlus className="w-4 h-4" />
+              Sign up / Log in
+            </button>
+          ) : (
+            // Authenticated user
+            <>
+              <div className="flex items-center gap-2.5 px-3 py-2 mb-1">
+                <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-600">
+                  {user?.doctor_name?.charAt(0)?.toUpperCase() || 'D'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-slate-700 truncate">
+                    {user?.doctor_name || 'Doctor'}
+                  </p>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    {user?.clinic_name || 'Clinic'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </button>
+            </>
+          )}
         </div>
       </aside>
     </>

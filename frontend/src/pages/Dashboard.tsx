@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { dashboardApi } from '@/api/dashboard';
 import { useAuthStore } from '@/store/authStore';
+import { useGuestMode } from '@/context/GuestModeContext';
+import { demoStats } from '@/data/demoData';
 import { Users, Clock, CheckCircle, XCircle, Upload, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,14 +19,21 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
+  const { isGuest, requireAuth } = useGuestMode();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (isGuest) {
+      // Guests see hardcoded demo data — no API call
+      setStats(demoStats);
+      setLoading(false);
+      return;
+    }
     dashboardApi.getStats()
       .then((res) => setStats(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [isGuest]);
 
   if (loading) {
     return (
@@ -38,7 +47,11 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="text-lg font-semibold text-slate-800">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Welcome back, Dr. {user?.doctor_name?.split(' ').pop() || 'Doctor'}</p>
+        <p className="text-sm text-slate-500 mt-0.5">
+          {isGuest
+            ? 'Welcome! This is a demo — sign up to see your real data.'
+            : `Welcome back, Dr. ${user?.doctor_name?.split(' ').pop() || 'Doctor'}`}
+        </p>
       </div>
 
       {/* Stats */}
@@ -66,17 +79,26 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions — gated for guests */}
       <div>
         <h2 className="text-sm font-medium text-slate-700 mb-3">Quick actions</h2>
-        <div className="flex gap-3">
-          <button onClick={() => navigate('/upload')} className="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
+        <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={() => requireAuth(() => navigate('/upload'))}
+            className="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+          >
             Upload data
           </button>
-          <button onClick={() => navigate('/patients')} className="px-4 py-2 text-sm font-medium border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+          <button
+            onClick={() => navigate('/patients')}
+            className="px-4 py-2 text-sm font-medium border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          >
             View patients
           </button>
-          <button onClick={() => navigate('/reminders')} className="px-4 py-2 text-sm font-medium border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+          <button
+            onClick={() => navigate('/reminders')}
+            className="px-4 py-2 text-sm font-medium border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          >
             Reminders
           </button>
         </div>

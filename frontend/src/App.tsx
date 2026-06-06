@@ -12,16 +12,27 @@ import Landing from '@/pages/Landing';
 import Onboarding from '@/pages/Onboarding';
 import NotFound from '@/pages/NotFound';
 import { useAuthStore } from '@/store/authStore';
+import { GuestModeProvider } from '@/context/GuestModeContext';
 
 /**
- * ProtectedRoute — redirects to /login if the user is not authenticated.
- * Wraps any route that requires a valid JWT session.
+ * ProtectedRoute
+ * - Authenticated users: renders children normally.
+ * - Guests: still renders children (preview / demo mode) — no redirect.
+ *   The GuestModeContext + GuestBanner + GuestAuthModal handle the UX.
+ *
+ * Admin-only routes remain hard-protected (redirect to /login for guests).
  */
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function DemoRoute({ children }: { children: React.ReactNode }) {
+  // Always render — guest mode is handled by context
+  return <>{children}</>;
+}
+
+/**
+ * StrictProtectedRoute — only for admin pages that must never be visible to guests.
+ */
+function StrictProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -30,32 +41,42 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={!isAuthenticated ? <Landing /> : <Navigate to="/dashboard" replace />} />
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
-        <Route path="/onboarding" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Onboarding />} />
+      <GuestModeProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={!isAuthenticated ? <Landing /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+          <Route path="/onboarding" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Onboarding />} />
 
-        {/* Protected routes — all require authentication */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/upload" element={<Upload />} />
-          <Route path="/patients" element={<Patients />} />
-          <Route path="/reminders" element={<Reminders />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/billing" element={<Billing />} />
-        </Route>
+          {/*
+            Semi-open routes — accessible to both authenticated users and guests.
+            Guests see demo data + the GuestBanner + action-gate modal.
+            Layout itself now handles the banner rendering.
+          */}
+          <Route element={<DemoRoute><Layout /></DemoRoute>}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/patients" element={<Patients />} />
+            <Route path="/reminders" element={<Reminders />} />
+            <Route path="/upload" element={<Upload />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/billing" element={<Billing />} />
+          </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          {/* Strict admin — requires real authentication */}
+          <Route
+            path="/admin"
+            element={
+              <StrictProtectedRoute>
+                <Layout />
+              </StrictProtectedRoute>
+            }
+          >
+            <Route index element={<Admin />} />
+          </Route>
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </GuestModeProvider>
     </BrowserRouter>
   );
 }
-

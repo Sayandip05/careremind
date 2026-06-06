@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { uploadApi } from '@/api/upload';
-import { Upload as UploadIcon, Camera, CheckCircle, AlertCircle, Trash2, Edit2, Check, X } from 'lucide-react';
+import { useGuestMode } from '@/context/GuestModeContext';
+import { Upload as UploadIcon, Camera, CheckCircle, AlertCircle, Trash2, Check } from 'lucide-react';
 
 interface ExtractedRow {
   name: string;
@@ -19,6 +20,7 @@ interface ReviewRow extends ExtractedRow {
 type Stage = 'idle' | 'uploading' | 'review' | 'confirming' | 'done' | 'error';
 
 export default function Upload() {
+  const { isGuest, requireAuth } = useGuestMode();
   const [stage, setStage] = useState<Stage>('idle');
   const [uploadType, setUploadType] = useState<'excel' | 'photo'>('photo');
   const [dragActive, setDragActive] = useState(false);
@@ -195,6 +197,12 @@ export default function Upload() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // Guest preview: show the upload UI but intercept any file interaction
+  const handleGuestDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    requireAuth();
+  };
+
   return (
     <div className="space-y-6 pt-6">
       <div>
@@ -225,11 +233,14 @@ export default function Upload() {
       {/* Drop Zone — shown when idle, on error, or in review (to add more photos) */}
       {(stage === 'idle' || stage === 'error' || stage === 'review') && (
         <div
-          onDragEnter={handleDrag}
-          onDragOver={handleDrag}
-          onDragLeave={handleDrag}
-          onDrop={(e) => { e.preventDefault(); setDragActive(false); if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]); }}
-          onClick={() => !isAddingMore && fileRef.current?.click()}
+          onDragEnter={isGuest ? (e) => { e.preventDefault(); } : handleDrag}
+          onDragOver={isGuest ? (e) => { e.preventDefault(); } : handleDrag}
+          onDragLeave={isGuest ? (e) => { e.preventDefault(); } : handleDrag}
+          onDrop={isGuest ? handleGuestDrop : (e) => { e.preventDefault(); setDragActive(false); if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]); }}
+          onClick={() => {
+            if (isGuest) { requireAuth(); return; }
+            if (!isAddingMore) fileRef.current?.click();
+          }}
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
             isAddingMore
               ? 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-60'

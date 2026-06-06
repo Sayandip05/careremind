@@ -175,6 +175,16 @@ export default function Landing() {
               Book A Demo
             </a>
           </div>
+          <div className="mt-5">
+            <a
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1E5F3A] hover:underline underline-offset-4 transition-colors"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Preview the dashboard →
+            </a>
+          </div>
+
         </div>
 
         {/* Overlapping Cards Replacement -> Image Slider */}

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { bookingApi } from '@/api/booking';
 import { clinicsApi } from '@/api/clinics';
+import { useGuestMode } from '@/context/GuestModeContext';
+import { demoBookings } from '@/data/demoData';
 import {
   CalendarDays,
   Download,
@@ -65,6 +67,7 @@ function statusBadge(status: string) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Bookings() {
+  const { isGuest, requireAuth } = useGuestMode();
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
   const [selectedClinic, setSelectedClinic] = useState<string>('');
   const [clinics, setClinics] = useState<ClinicOption[]>([]);
@@ -77,15 +80,23 @@ export default function Bookings() {
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Fetch clinics once ────────────────────────────────────────────────────
+  // ── Fetch clinics once (skip for guests) ──────────────────────────────────
   useEffect(() => {
+    if (isGuest) return;
     clinicsApi.list().then((res) => {
       setClinics(res.data?.clinics ?? []);
     }).catch(() => {});
-  }, []);
+  }, [isGuest]);
 
-  // ── Fetch bookings ────────────────────────────────────────────────────────
+  // ── Fetch bookings (demo data for guests) ────────────────────────────────
   const fetchBookings = async (isBackground = false) => {
+    if (isGuest) {
+      setBookings(demoBookings as BookingRow[]);
+      setLastUpdated(new Date());
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     if (isBackground) {
       setRefreshing(true);
     } else {
@@ -108,7 +119,7 @@ export default function Bookings() {
 
   useEffect(() => {
     fetchBookings(false);
-  }, [selectedDate, selectedClinic]);
+  }, [selectedDate, selectedClinic, isGuest]);
 
   // ── Auto-refresh every 30 s ───────────────────────────────────────────────
   useEffect(() => {
@@ -132,21 +143,22 @@ export default function Bookings() {
     };
   }, [selectedDate, selectedClinic]);
 
-  // ── PDF download ─────────────────────────────────────────────────────────
+  // ── PDF download (gated for guests) ──────────────────────────────────────
   const handleDownload = () => {
-    setDownloading(true);
-    const url = bookingApi.getSchedulePdfUrl(
-      selectedDate,
-      selectedClinic || undefined,
-    );
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `schedule_${selectedDate}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    // Reset downloading state after a short delay
-    setTimeout(() => setDownloading(false), 2000);
+    requireAuth(() => {
+      setDownloading(true);
+      const url = bookingApi.getSchedulePdfUrl(
+        selectedDate,
+        selectedClinic || undefined,
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `schedule_${selectedDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => setDownloading(false), 2000);
+    });
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
