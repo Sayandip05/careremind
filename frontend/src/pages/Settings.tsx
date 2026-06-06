@@ -378,7 +378,7 @@ export default function Settings() {
         />
       )}
 
-      <div className="space-y-8 max-w-2xl">
+      <div className="space-y-8 max-w-2xl mx-auto">
         {/* Header */}
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Settings</h1>

@@ -7,22 +7,20 @@ import { useGuestMode } from '@/context/GuestModeContext';
 
 /**
  * Layout offset constants (px):
- *   BANNER_H  = 32  (h-8)
- *   HEADER_H  = 56  (h-14, mobile-only)
+ *   BANNER_H   = 32   (h-8,  guest banner)
+ *   HEADER_H   = 56   (h-14, mobile header)
+ *   PAGE_GAP   = 32   (breathing room between fixed bar and content, same on all pages)
  *
- * Guest fixed-element offsets:
- *   Header  → top: 32px   (below banner)
- *   Sidebar → top: 32px   (below banner)
- *
- * Main content padding-top:
- *   Mobile  + guest   = 32 + 56 = 88px
- *   Mobile  + authed  = 56px
- *   Desktop + guest   = 32px
- *   Desktop + authed  = 0px
+ * Total padding-top applied to main content:
+ *   Mobile  + guest   = BANNER_H + HEADER_H + PAGE_GAP = 32+56+32 = 120px
+ *   Mobile  + authed  = HEADER_H + PAGE_GAP             = 56+32   =  88px
+ *   Desktop + guest   = BANNER_H + PAGE_GAP             = 32+32   =  64px
+ *   Desktop + authed  = PAGE_GAP                        =    32   =  32px
  */
 
-const BANNER_H = 32;  // px
-const HEADER_H = 56;  // px
+const BANNER_H = 32;
+const HEADER_H = 56;
+const PAGE_GAP = 32; // consistent breathing room on every page
 
 export default function Layout() {
   const { isGuest } = useGuestMode();
@@ -31,22 +29,24 @@ export default function Layout() {
   const toggleSidebar = useCallback(() => setSidebarOpen((prev) => !prev), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
-  // How many px the fixed header/sidebar should be pushed down
   const fixedOffset = isGuest ? BANNER_H : 0;
+
+  const mobilePaddingTop  = (isGuest ? BANNER_H : 0) + HEADER_H + PAGE_GAP;
+  const desktopPaddingTop = (isGuest ? BANNER_H : 0) + PAGE_GAP;
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* Demo mode banner — fixed top-0, h-8 (32px) */}
+      {/* Guest demo banner — fixed top-0, 32px tall */}
       {isGuest && <GuestBanner />}
 
-      {/* Mobile header — sits below the banner when guest */}
+      {/* Mobile header — offset below banner when guest */}
       <Header
         onMenuToggle={toggleSidebar}
         sidebarOpen={sidebarOpen}
         offsetTop={fixedOffset}
       />
 
-      {/* Sidebar — sits below the banner when guest */}
+      {/* Sidebar — offset below banner when guest */}
       <Sidebar
         open={sidebarOpen}
         onClose={closeSidebar}
@@ -54,22 +54,16 @@ export default function Layout() {
       />
 
       {/*
-        Main scrollable area.
-        We push the content down with padding-top to clear both the banner
-        and the mobile header.  On desktop (md+) there's no mobile header,
-        so only the banner height is needed.
+        Main content area.
+        padding-top = fixed bars + consistent PAGE_GAP breathing room.
+        We use a single inline style driven by a CSS custom property trick
+        via two hidden spacer divs (one per breakpoint).
       */}
-      <main className="flex-1 md:ml-[220px] px-6 md:px-8 pb-8">
-        {/* Mobile: clear banner + header */}
-        <div
-          className="md:hidden"
-          style={{ paddingTop: isGuest ? BANNER_H + HEADER_H : HEADER_H }}
-        />
-        {/* Desktop: clear banner only */}
-        <div
-          className="hidden md:block"
-          style={{ paddingTop: isGuest ? BANNER_H : 0 }}
-        />
+      <main className="flex-1 md:ml-[220px] px-6 md:px-8 pb-10">
+        {/* Mobile spacer */}
+        <div className="md:hidden" style={{ height: mobilePaddingTop }} />
+        {/* Desktop spacer */}
+        <div className="hidden md:block" style={{ height: desktopPaddingTop }} />
 
         <div className="max-w-6xl mx-auto">
           <Outlet />
