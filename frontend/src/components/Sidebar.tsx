@@ -27,9 +27,11 @@ const navItems = [
 interface SidebarProps {
   open?: boolean;
   onClose?: () => void;
+  /** Vertical offset in px — used to push sidebar below the guest banner. */
+  offsetTop?: number;
 }
 
-export default function Sidebar({ open = false, onClose }: SidebarProps) {
+export default function Sidebar({ open = false, onClose, offsetTop = 0 }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const { isGuest } = useGuestMode();
   const navigate = useNavigate();
@@ -64,15 +66,13 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           issues cannot interfere with the open/close animation.
       ────────────────────────────────────────────────────────────── */}
       <aside
-        style={{
-          // On desktop the sidebar is always visible (no JS transform)
-          // On mobile we drive it via translateX
-        }}
-        className="fixed left-0 top-0 h-full w-[220px] bg-white border-r border-slate-200 flex flex-col z-50
+        style={open
+          ? { transform: 'translateX(0)', top: offsetTop, height: `calc(100vh - ${offsetTop}px)` }
+          : { top: offsetTop, height: `calc(100vh - ${offsetTop}px)` }
+        }
+        className="fixed left-0 w-[220px] bg-white border-r border-slate-200 flex flex-col z-50
                    -translate-x-full md:translate-x-0
                    transition-transform duration-300 ease-in-out"
-        // Override Tailwind's static -translate-x-full on mobile when open
-        {...(open ? { style: { transform: 'translateX(0)' } } : {})}
       >
         {/* Brand — hidden on mobile (Header shows it) */}
         <div className="hidden md:flex px-5 py-5 border-b border-slate-100">

@@ -5,13 +5,15 @@ import { useAuthStore } from '@/store/authStore';
 interface HeaderProps {
   onMenuToggle: () => void;
   sidebarOpen: boolean;
+  /** Vertical offset in px (used to push header below the guest banner). */
+  offsetTop?: number;
 }
 
 /**
  * Mobile-only top header bar.
  * Hidden on md+ screens where the persistent sidebar takes over.
  */
-export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
+export default function Header({ onMenuToggle, sidebarOpen, offsetTop = 0 }: HeaderProps) {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -22,7 +24,10 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 bg-white border-b border-slate-200 md:hidden">
+    <header
+      className="fixed left-0 right-0 z-40 flex items-center justify-between px-4 h-14 bg-white border-b border-slate-200 md:hidden"
+      style={{ top: offsetTop }}
+    >
       {/* Brand — clickable, scrolls user to top of landing page */}
       <button
         onClick={handleBrandClick}
