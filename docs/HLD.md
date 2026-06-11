@@ -1,12 +1,13 @@
-# High-Level Design (HLD) - CareRemind
+# High-Level Design (HLD) & System Architecture - CareRemind
 
-**Version**: 1.0  
-**Last Updated**: 2026-04-30  
-**Status**: Production-Ready
+**Version**: 1.1  
+**Last Updated**: 2026-06-11  
+**Status**: Production-Ready  
+**Document Type**: Unified Architecture Design & High-Level Design
 
 ---
 
-## 1. Problem Statement
+## 1. Executive Summary & Problem Statement
 
 Indian clinics struggle with patient no-shows and manual reminder management. Doctors spend hours calling patients to remind them of appointments, leading to:
 - **High no-show rates** (30-40% in small clinics)
@@ -14,670 +15,579 @@ Indian clinics struggle with patient no-shows and manual reminder management. Do
 - **Lost revenue** from missed appointments
 - **Poor patient experience** due to forgotten appointments
 
-**CareRemind** automates appointment reminders via WhatsApp and SMS, reducing no-shows and freeing doctors to focus on patient care.
+**CareRemind** is a production-grade, AI-powered, multi-tenant SaaS platform that automates appointment reminders via WhatsApp (Meta Cloud API). It supports online patient bookings, payment processing, multiple clinic locations, automated daily schedule compilation (PDF), and a web dashboard for doctors, helping them streamline their clinic operations.
 
 ---
 
 ## 2. Who is the User & What Pain It Solves
 
 ### Primary User
-**Individual doctors** in India (general practitioners, dentists, pediatricians, etc.) who run their own clinics
+**Individual doctors** in India (general practitioners, dentists, pediatricians, dermatologists, eye specialists, orthopedics, etc.) who run their own clinics and manage appointments.
 
 ### Pain Points Solved
-- ✅ **Automated reminders**: No more manual calls
-- ✅ **Multi-channel delivery**: WhatsApp (primary) + SMS (fallback)
-- ✅ **Intelligent scheduling**: Reminders sent at specialty-specific times
-- ✅ **Easy data upload**: Excel, photo (OCR), or WhatsApp - no manual entry
-- ✅ **WhatsApp-first**: Doctor can send patient register photos directly via WhatsApp
-- ✅ **Online booking**: Patients book appointments at doctor's clinic locations
-- ✅ **Daily schedules**: PDF with online bookings + walk-in slots sent to doctor's WhatsApp
-- ✅ **Multiple clinics**: Support for doctors with multiple clinic locations
+- ✅ **Automated Reminders**: No more manual phone calls or text messages.
+- ✅ **WhatsApp-First Delivery**: Personalized notifications sent directly to WhatsApp (the most active communication channel in India).
+- ✅ **Intelligent Specialty Scheduling**: Reminders scheduled based on medical specialty rules.
+- ✅ **Convenient Data Upload**: Supports Excel spreadsheets, photo uploads (with vision OCR extraction), or direct WhatsApp uploads (sending register photos directly to the WhatsApp Business number).
+- ✅ **Online Patient Booking**: Patients can schedule slots at any of the doctor's clinic locations using booking links.
+- ✅ **Razorpay Payments**: Upfront booking fees collected to prevent fake bookings and reduce no-shows.
+- ✅ **Daily PDF Schedules**: A structured PDF schedule (online bookings with walk-ins) delivered to the doctor's WhatsApp at midnight daily.
+- ✅ **Guest Mode / Demo Sandbox**: Non-registered users can check the dashboard and play with mock stats, gating write actions with an auth modal.
 
 ---
 
-## 3. System Overview
+## 3. Architecture Paradigm: Why Modular Monolith Over Microservices?
 
-CareRemind is an **AI-powered, multi-tenant SaaS platform** that:
+### Decision: Modular Monolith
+The system is built as a **modular monolith**. It uses a single codebase (`services/fastapi/` for backend, `frontend/` for frontend) but can run as multiple containers (API server, Celery workers) in production.
 
-1. **Ingests patient data** via Excel upload or photo (OCR)
-2. **Schedules reminders** based on medical specialty (all specialties get 7-day and 30-day follow-up reminders)
-3. **Sends reminders** via WhatsApp (primary) with SMS fallback
-4. **Enables online booking** with payment integration (Razorpay)
-5. **Generates daily schedules** (PDF) with serial numbers for walk-ins
-6. **Provides analytics** dashboard for doctors
-
-### Key Capabilities
-- **Multi-tenant**: Each doctor has isolated data
-- **AI-powered**: LangGraph state machines for data processing
-- **Async/scalable**: Handles 800+ concurrent doctors per server
-- **Graceful degradation**: Works even if external services fail
-
----
-
-## 4. Major Components & Responsibilities
-
-### 4.1 Frontend (React + TypeScript)
-**Responsibility**: Doctor-facing web dashboard
-
-**Pages**:
-- **Dashboard**: Stats (patients, reminders, success rate)
-- **Upload**: Excel/photo upload for patient data
-- **Patients**: View/edit patient list
-- **Reminders**: Track reminder status (sent/failed/pending)
-- **Booking**: Manage clinic locations, view daily schedules
-- **Settings**: Profile, clinic details, preferences
-
-**Tech**: React 19, Vite, Zustand (state), Axios (API), Tailwind CSS
-
----
-
-### 4.2 Backend (FastAPI)
-**Responsibility**: RESTful API server, business logic, authentication
-
-**Key Modules**:
-- **Auth**: Registration, login (email/password + OAuth), JWT tokens
-- **Patients**: CRUD operations, deduplication by phone hash
-- **Appointments**: Track visits, next visit dates
-- **Reminders**: Create, schedule, track delivery status
-- **Upload**: Process Excel/photo uploads via AI agents
-- **Booking**: Slot reservation, payment integration, serial numbers
-- **Dashboard**: Aggregate statistics
-- **Webhooks**: Razorpay payment, WhatsApp message callbacks
-
-**Tech**: FastAPI (async), SQLAlchemy (async ORM), Pydantic (validation)
-
----
-
-### 4.3 Database (PostgreSQL)
-**Responsibility**: Persistent storage for all data
-
-**Key Tables**:
-- **tenants**: Doctor/clinic accounts
-- **patients**: Patient records (phone encrypted)
-- **appointments**: Visit history, next visit dates
-- **reminders**: Scheduled reminders with status tracking
-- **bookings**: Online appointment bookings
-- **daily_schedules**: Generated PDF schedules
-- **clinic_locations**: Multiple clinic addresses per doctor
-
-**Tech**: PostgreSQL 15 (Supabase), async connection pooling
-
----
-
-### 4.4 Cache & Queue (Redis)
-**Responsibility**: Caching, task queue, distributed locking
-
-**Uses**:
-- **Celery broker**: Task queue for background jobs
-- **Result backend**: Store task results
-- **Distributed locks**: Prevent duplicate job execution
-- **Caching**: Session data, rate limiting
-
-**Tech**: Redis 7 with AOF persistence
-
----
-
-### 4.5 AI Agents (LangGraph)
-**Responsibility**: Intelligent data processing workflows
-
-**Three State Machines**:
-
-1. **Ingestion Graph** (Upload Pipeline)
-   ```
-   Route by file type → Extract (Excel/OCR) → Dedup → Save to DB
-   ```
-   - Extracts patient data from Excel or photos
-   - Deduplicates by phone number hash
-   - Creates Patient + Appointment records
-
-2. **Scheduling Graph** (Reminder Creation)
-   ```
-   Resolve specialty → Create reminders
-   ```
-   - Maps specialty to reminder timing rules (7-day and 30-day for all specialties)
-   - Creates Reminder records with scheduled_at timestamps (9:00 AM IST on reminder date)
-
-3. **Notification Graph** (Message Delivery)
-   ```
-   Load context → Check opt-out → Decrypt phone → Generate message → Try WhatsApp → Fallback SMS
-   ```
-   - Generates personalized messages (AI)
-   - Tries WhatsApp first, falls back to SMS
-   - Updates Reminder status (SENT/FAILED)
-
-**Tech**: LangGraph (state graphs), LangSmith (tracing)
-
----
-
-### 4.6 Background Workers (Celery)
-**Responsibility**: Async task execution (runs as separate container, same codebase)
-
-**Location**: `services/fastapi/app/worker/`
-
-**Tasks**:
-- **send_pending_reminders**: Send all due reminders (dispatched at 9 AM IST)
-- **retry_failed_reminders**: Retry failed ones (dispatched at 11 AM IST)
-- **generate_daily_summary**: Send stats to doctor (dispatched at 9:30 AM IST)
-- **cleanup_old_uploads**: Delete old files (dispatched at midnight)
-- **cleanup_expired_reminders**: Archive old records (dispatched at midnight)
-
-**Tech**: Celery 5.3, Redis broker, async task support
-
-**Note**: Worker runs in a separate Docker container but shares the same codebase as the API server. Started with: `celery -A app.worker.celery_app worker --loglevel=info`
-
----
-
-### 4.7 Scheduler (APScheduler)
-**Responsibility**: Cron job scheduling (runs in-process with FastAPI)
-
-**Location**: `services/fastapi/app/scheduler/jobs.py`
-
-**Jobs**:
-- **Midnight (00:00 IST)**: 
-  - Generate daily schedules (direct execution)
-  - Dispatch cleanup tasks to Celery workers
-- **Every 5 minutes**: Cancel expired reservations (direct execution)
-- **9:00 AM IST**: Dispatch send_pending_reminders to Celery
-- **9:30 AM IST**: Dispatch generate_daily_summary to Celery
-- **11:00 AM IST**: Dispatch retry_failed_reminders to Celery
-
-**Tech**: APScheduler (async mode), distributed locking (Redis)
-
-**Note**: Scheduler runs in-process with the FastAPI application. Uses distributed locking to prevent duplicate execution when multiple API instances are running.
-
----
-
-### 4.8 Integration Services
-**Responsibility**: External API integrations
-
-**Services**:
-- **WhatsApp**: Meta Cloud API (message delivery)
-- **SMS**: Fast2SMS (fallback when WhatsApp fails)
-- **Payments**: Razorpay (booking payments)
-- **Vision/OCR**: NVIDIA/OpenAI (photo extraction)
-- **Storage**: Supabase (file uploads, PDFs)
-- **LLM**: Groq/OpenAI (message generation)
-
-**Features**: Retry with exponential backoff, connection pooling, graceful degradation
-
----
-
-## 4.9 Specialty System
-**Responsibility**: Define reminder timing and messaging rules per medical specialty
-
-**Location**: `services/fastapi/app/specialty/`
-
-**Supported Specialties**:
-- General Medicine
-- Dental
-- Ophthalmology (Eye)
-- Orthopedic
-- Pediatric
-- Dermatology (Skin)
-- Diagnostic Lab
-- Custom (any other specialty)
-
-**Reminder Timing**: All specialties use the same timing pattern:
-- **7-day follow-up**: Reminder sent 7 days after the last visit
-- **30-day follow-up**: Reminder sent 30 days after the last visit
-- All reminders scheduled for 9:00 AM IST
-
-**Specialty-Specific Features**:
-- Pre-visit instructions (e.g., "Fast for 12 hours before blood test")
-- Message tone (neutral, caring, calm, supportive, friendly, gentle, precise)
-- Default follow-up gap (used when next_visit_date is missing)
-
-**Tech**: Python classes with abstract base, registry pattern for lookup
-
----
-
-## 5. Data Flow
-
-### Flow 1: Patient Data Upload (3 Ways)
-
-**Option A: Dashboard Upload**
 ```
-Doctor uploads Excel/Photo via web dashboard
-  ↓
-POST /api/v1/upload/excel or /upload/photo
-  ↓
-Ingestion Graph (LangGraph)
-  ├─ Extract: Parse Excel or OCR photo
-  ├─ Dedup: Check for duplicate patients (phone hash)
-  └─ Save: Create Patient + Appointment records
-  ↓
-Scheduling Graph (LangGraph)
-  ├─ Resolve specialty timing rules
-  └─ Create Reminder records (status=PENDING)
-  ↓
-Dashboard updated with new patient count
+                  ┌─────────────────┐
+                  │  Vercel Static  │
+                  │  React/Vite App │
+                  └────────┬────────┘
+                           │ HTTPS (REST API)
+                           ▼
+                 ┌───────────────────┐
+                 │    Caddy Proxy    │
+                 └─────────┬─────────┘
+                           │ reverse-proxy
+                           ▼
+            ┌─────────────────────────────┐
+            │       FastAPI Backend       │ (API Container)
+            │  (Async API + APScheduler)  │
+            └──────────────┬──────────────┘
+                           │ Tasks Enqueue
+                           ▼
+                    ┌──────────────┐
+                    │  Upstash TLS │ (Redis Queue & Cache)
+                    │  Redis Broker│
+                    └──────┬───────┘
+                           │ Task Dequeue
+                           ▼
+            ┌─────────────────────────────┐
+            │        Celery Worker        │ (Worker Container)
+            │   (Same Code, Worker Entry) │
+            └─────────────────────────────┘
 ```
 
-**Option B: WhatsApp Upload (Doctor sends photo/Excel)**
-```
-Doctor sends patient register photo to WhatsApp Business number
-  ↓
-POST /api/v1/webhooks/whatsapp (Meta webhook)
-  ↓
-System identifies doctor by WhatsApp number
-  ↓
-Download media from Meta API
-  ↓
-Same Ingestion Graph pipeline as above
-  ↓
-Send confirmation message back to doctor's WhatsApp
-  ("✅ Image processed! 10 new patients, 2 duplicates")
-```
+### Key Rationale
+1. **Simplicity & Velocity**: Easier local debugging, development, and unit testing within a single repository context.
+2. **Reduced Latency & Network Overhead**: Shared relational database context prevents the need for complex, failure-prone distributed network requests.
+3. **Transaction Reliability**: Full ACID database transaction guarantees across clinic locations, patients, appointments, and reminders without requiring Saga patterns.
+4. **Team & Resource Efficiency**: Minimizes server overhead costs and eliminates the necessity of complex setups (Kubernetes, Service Meshes, API Gateways) for small development teams.
+5. **Horizontal Scalability**: Despite a unified codebase, workload distribution is decoupled. The API server scales independently from the Celery background workers.
 
-**Option C: Patient Opt-out**
-```
-Patient sends "STOP" to WhatsApp
-  ↓
-POST /api/v1/webhooks/whatsapp
-  ↓
-Mark patient as opted out
-  ↓
-Cancel all pending reminders for that patient
-```
+### Trade-offs Accepted
+- **Tech Stack Lock-in**: All backend modules must share the same runtime (Python/FastAPI) and packages.
+- **Deployment Cadence**: Deployments are all-or-nothing (a pipeline failure blocks both the API and worker deployments).
 
-### Flow 2: Reminder Sending (9 AM IST)
-```
-Scheduler triggers send_pending_reminders
-  ↓
-Celery worker fetches all PENDING reminders where scheduled_at <= now
-  ↓
-For each reminder:
-  Notification Graph (LangGraph)
-    ├─ Load context (patient, appointment, tenant)
-    ├─ Check if patient opted out
-    ├─ Decrypt phone number
-    ├─ Generate personalized message (AI)
-    ├─ Try WhatsApp send (with retry)
-    └─ Fallback to SMS if WhatsApp fails
-  ↓
-Update Reminder status (SENT/FAILED)
-  ↓
-9:30 AM: Generate daily summary (sent/failed/pending counts)
-11 AM: Retry failed reminders (max 2 attempts)
-```
+### When to Refactor to Microservices
+- The engineering team expands beyond 10 developers, causing code ownership conflicts.
+- Workloads like message generation (LLMs) or PDF rendering require specialized, highly-elastic scaling compared to general CRUD endpoints.
+- Different components require different runtimes (e.g. Node.js or Go for high-performance I/O).
 
-### Flow 3: Patient Booking (via Dashboard)
+---
+
+## 4. Component Details & Directory Mapping
+
+The application codebase is strictly separated into distinct modules:
+
 ```
-Patient receives reminder with booking link
-  ↓
-Patient opens link → Booking page
-  ↓
-GET /api/v1/booking/clinics → Select doctor's clinic location
-  ↓
-GET /api/v1/booking/slots?clinic_id=X&date=Y → View available slots
-  ↓
-POST /api/v1/booking/reserve
-  ├─ Create booking (status=RESERVED, expires in 10 min)
-  ├─ Create Razorpay order
-  └─ Return payment details
-  ↓
-Patient completes payment on Razorpay
-  ↓
-POST /api/v1/booking/confirm
-  ├─ Verify payment signature (HMAC-SHA256)
-  ├─ Update booking to CONFIRMED
-  ├─ Generate PDF bill
-  └─ Send confirmation to patient
-  ↓
-Midnight: Assign serial numbers to confirmed bookings
-  ↓
-Midnight: Generate daily schedule PDF (online bookings + walk-in slots)
-  ↓
-Send PDF to doctor's WhatsApp
+careremind/
+├── docs/                      # Documentation (HLD, API Specs)
+├── frontend/                  # React + TypeScript + Vite Frontend application
+│   └── src/
+│       ├── api/               # Axios services
+│       ├── components/        # UI components (Layout, Guest gates, widgets)
+│       ├── context/           # React contexts (Auth, GuestModeContext)
+│       ├── pages/             # App Pages (Dashboard, Settings, Billing, Patients)
+│       └── store/             # Zustand global state (Auth state)
+└── services/
+    └── fastapi/               # Unified Backend codebase
+        └── app/
+            ├── agents/        # LangGraph state machines & worker nodes
+            ├── core/          # Configuration, Database engine, Integrations
+            ├── features/      # Modular business features (CRUD routers, models, services)
+            │   ├── auth/      # Doctor registry, login & Google OAuth
+            │   ├── booking/   # Patient booking slots, serials & daily PDF
+            │   ├── patients/  # Patient management & data encryption
+            │   ├── reminders/ # Reminders scheduling & notification wrapper
+            │   └── upload/    # Photo/Excel pipeline controller
+            ├── middleware/    # Rate limiters, security headers, context
+            ├── scheduler/     # In-process APScheduler registry
+            ├── specialty/     # Medical specialty class registry
+            └── worker/        # Celery application & background tasks
 ```
 
 ---
 
-## 6. Tech Stack & Why
+## 5. System Containers & Responsibilities
 
-### Backend: FastAPI
-**Why**: Async/await support, automatic API docs, Pydantic validation, high performance
+### 5.1 React Frontend
+- **Technology**: React 19, Vite, TypeScript, Tailwind CSS, Zustand, Axios, React Router 6.
+- **Responsibility**: Interactive dashboard for doctors. Allows them to upload registers, view patient lists, track scheduled reminders, manage clinic profiles, edit clinic locations, review daily appointment schedules, and subscribe to premium plans.
+- **Key Design Patterns**:
+  - **Guest Mode Sandbox**: Accessible without authorization via a `GuestModeProvider`. Normal users are guided with a banner and sandbox data. Write/edit actions are caught by a global hook `requireAuth()` that renders a login/signup modal.
+  - **Mobile Responsiveness**: Pure CSS/Tailwind-based mobile design. Long tables use a custom `.overflow-x-auto` wrapper with minimum column widths. Complex navigation grids adapt to single-column flex configurations on mobile screens. Hover actions on desktop (like card edit/delete buttons) degrade gracefully to static visibility on touch screens.
 
-### Database: PostgreSQL (Supabase)
-**Why**: ACID compliance, JSON support, full-text search, managed hosting
+### 5.2 FastAPI Backend
+- **Technology**: FastAPI (async), SQLAlchemy 2.0 (async ORM), Pydantic v2 (data validation).
+- **Responsibility**: Exposes a RESTful JSON API. Coordinates database persistence, token generation, webhook ingestion (WhatsApp/Razorpay), and initiates LangGraph workflows. Runs an in-process APScheduler instances for cron jobs.
 
-### Cache/Queue: Redis
-**Why**: Fast in-memory storage, Celery broker, distributed locking
+### 5.3 PostgreSQL Database (Supabase)
+- **Technology**: PostgreSQL 15, SQLAlchemy async pooling.
+- **Responsibility**: Relational database storing isolated tenant settings, patient records, visits, billing invoices, bookings, and audit records.
 
-### AI Framework: LangGraph
-**Why**: Composable state machines, built-in tracing (LangSmith), debuggable workflows
+### 5.4 Cache, Queue & Distributed Locks (Redis)
+- **Technology**: Redis 7 (Upstash SSL/TLS enabled in production).
+- **Responsibility**:
+  - Task Broker for Celery tasks.
+  - Results backend for task outcome logging.
+  - Caching dashboard metrics (5-minute Time-To-Live).
+  - Distributed locking (`scheduler_lock:{job_name}`) to prevent multiple FastAPI container replicas from executing the same scheduled job.
 
-### Frontend: React + TypeScript
-**Why**: Component reusability, type safety, large ecosystem
+### 5.5 AI Agents (LangGraph & LangSmith)
+- **Technology**: LangGraph (composable state graphs), OpenAI GPT-4o-mini (Vision OCR & text synthesis).
+- **Responsibility**: Orchestrates multi-step cognitive flows (extraction, validation, deduplication, message compilation) with visibility provided via LangSmith tracing.
 
-### Task Queue: Celery
-**Why**: Mature, reliable, async support, distributed task execution
-
-### Scheduler: APScheduler
-**Why**: Async support, cron-like syntax, in-process (no separate service)
-
-### Deployment: Docker + Kubernetes
-**Why**: Containerization, horizontal scaling, graceful shutdown
+### 5.6 Background Workers (Celery)
+- **Technology**: Celery 5.3 (multiprocess execution).
+- **Responsibility**: Process asynchronous, long-running, or resource-heavy work out-of-band (e.g. sending bulk WhatsApp messages, OCR photo processing, midnight cleanup, retry loops).
 
 ---
 
-## 7. Architecture Diagram (C4 Level 1-2)
+## 6. AI Agent State Machines (LangGraph)
 
-### Level 1: System Context
+The system isolates operations into three specialized, stateful workflows:
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        CAREREMIND                            │
-│                                                              │
-│  ┌──────────────┐         ┌──────────────┐                 │
-│  │   Doctor     │◄────────┤   Patient    │                 │
-│  │  (Web App)   │         │  (WhatsApp)  │                 │
-│  └──────────────┘         └──────────────┘                 │
-│         │                         │                          │
-│         ▼                         ▼                          │
-│  ┌──────────────────────────────────────┐                  │
-│  │         CareRemind Platform          │                  │
-│  │  (Multi-tenant SaaS)                 │                  │
-│  └──────────────────────────────────────┘                  │
-│         │                                                    │
-│         ▼                                                    │
-│  ┌──────────────────────────────────────┐                  │
-│  │  External Services                   │                  │
-│  │  - WhatsApp (Meta)                   │                  │
-│  │  - SMS (Fast2SMS)                    │                  │
-│  │  - Payments (Razorpay)               │                  │
-│  │  - Vision/OCR (NVIDIA/OpenAI)        │                  │
-│  └──────────────────────────────────────┘                  │
-└─────────────────────────────────────────────────────────────┘
+1. Ingestion Graph (Patient Uploads)
+   START ──► Route Ingestion ──► Extract Excel / OCR Photo ──► Deduplicate ──► Persist (DB) ──► END
+
+2. Scheduling Graph (Reminder Setup)
+   START ──► Resolve Medical Specialty ──► Map Timings ──► Create Reminders (DB) ──► END
+
+3. Notification Graph (WhatsApp Send)
+   START ──► Load Context ──► Check Opt-Out ──► Decrypt Phone ──► Format Message ──► Deliver WhatsApp ──► END
 ```
 
-### Level 2: Container Diagram
+### 6.1 Ingestion Graph
+- **Node: Route Ingestion**: Detects target file format (`excel`, `photo`) or checks if patient rows are pre-injected (Human-in-the-loop confirmation flow).
+- **Node: Extract Excel**: Parses `.xlsx`/`.xls` upload logs using Pandas.
+- **Node: Extract OCR**: Invokes GPT-4o-mini Vision with doctor register photos to synthesize structured patient JSON.
+- **Node: Deduplicate**: Deterministically hashes incoming phone numbers (HMAC-SHA256) and matches them against existing patient records under the tenant context.
+- **Node: Save to DB**: Inserts new patients and schedules next visits.
+
+### 6.2 Scheduling Graph
+- **Node: Resolve Medical Specialty**: Inspects the doctor's specialty (or specialty overrides in the appointment record) via the specialty registry lookup.
+- **Node: Map Timings**: Fetches timing slots from the specialty instance (e.g., 7-day and 30-day follow-ups for all specialties).
+- **Node: Create Reminders**: Inserts pending reminder records in the database, targeted for 9:00 AM IST on the computed date.
+
+### 6.3 Notification Graph
+- **Node: Load Context**: Loads related Tenant, Patient, and Appointment data from the database.
+- **Node: Check Opt-Out**: Skips reminder creation if the patient record has `is_optout = True`.
+- **Node: Decrypt Phone**: Decrypts the patient's phone number using AES-256 Fernet encryption.
+- **Node: Format Message**: Synthesizes a patient message matching the doctor's language preference and specialty tone.
+- **Node: Deliver WhatsApp**: Submits the message to the Meta Cloud API. If Meta fails, the reminder is marked as failed and flagged for retry (no SMS fallback is currently active in the core pipeline).
+
+---
+
+## 7. Medical Specialty Configuration System
+
+Specialties govern reminder timing offset triggers, communication tones, and instructions.
+
+| Specialty | Default Follow-up | Message Tone | Pre-Visit Instructions | Timings |
+| :--- | :--- | :--- | :--- | :--- |
+| **General Medicine / GP**| 30 days | Caring / Calm | General health check guidelines | 7 & 30 days |
+| **Dental / Dentist** | 180 days | Gentle / Reassuring| Avoid eating for 1 hour before dental visits | 7 & 30 days |
+| **Ophthalmology (Eye)** | 90 days | Precise / Gentle | Remove contact lenses before testing | 7 & 30 days |
+| **Orthopedic** | 60 days | Supportive | Bring previous X-ray reports | 7 & 30 days |
+| **Pediatric** | 30 days | Friendly / Warm | Bring child's vaccination card | 7 & 30 days |
+| **Dermatology (Skin)** | 30 days | Precise / Calm | Do not apply makeup or creams before visit | 7 & 30 days |
+| **Diagnostic Lab** | 30 days | Precise | Fast for 10-12 hours before test | 7 & 30 days |
+| **Custom (Any other)** | User Defined | Friendly | General specialty follow-up guidelines | 7 & 30 days |
+
+---
+
+## 8. Detailed System Flows
+
+### 8.1 User Registration & Login (Local Auth & Google OAuth)
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     CAREREMIND PLATFORM                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────┐         ┌──────────────────────────────┐ │
-│  │   React      │◄────────┤   FastAPI Backend            │ │
-│  │   Frontend   │  HTTPS  │   (Async + APScheduler)      │ │
-│  │   (Vite)     │         │                              │ │
-│  └──────────────┘         │   ┌──────────────────────┐   │ │
-│                            │   │  AI Agents           │   │ │
-│                            │   │  (LangGraph)         │   │ │
-│                            │   └──────────────────────┘   │ │
-│                            │   ┌──────────────────────┐   │ │
-│                            │   │  Scheduler           │   │ │
-│                            │   │  (APScheduler)       │   │ │
-│                            │   └──────────────────────┘   │ │
-│                            │   ┌──────────────────────┐   │ │
-│                            │   │  Integration Services│   │ │
-│                            │   │  (WhatsApp/SMS/etc.) │   │ │
-│                            │   └──────────────────────┘   │ │
-│                            └──────────┬───────────────────┘ │
-│                                       │                      │
-│                    ┌──────────────────┼──────────────┐      │
-│                    │                  │              │      │
-│            ┌───────▼────┐  ┌──────────▼──────┐  ┌───▼────┐│
-│            │ PostgreSQL │  │    Redis        │  │Supabase││
-│            │ (Supabase) │  │ (Cache/Queue/   │  │(Storage││
-│            │            │  │  Locks)         │  │        ││
-│            └────────────┘  └─────────────────┘  └────────┘│
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │         CELERY WORKERS (Separate Container)          │  │
-│  ├──────────────────────────────────────────────────────┤  │
-│  │  - Send Reminders                                    │  │
-│  │  - Retry Failed Reminders                            │  │
-│  │  - Generate Daily Summary                            │  │
-│  │  - Cleanup Tasks                                     │  │
-│  │                                                       │  │
-│  │  (Same codebase as FastAPI, different entry point)   │  │
-│  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 8. What's In Scope
-
-### Core Features (MVP)
-- ✅ Patient data upload (Excel + Photo OCR)
-- ✅ Appointment tracking (visit dates, next visit)
-- ✅ Intelligent reminder scheduling (specialty-based)
-- ✅ Multi-channel delivery (WhatsApp + SMS)
-- ✅ Online booking with payments (Razorpay)
-- ✅ Daily schedule generation (PDF)
-- ✅ Dashboard analytics
-- ✅ Multi-tenant isolation
-- ✅ Authentication (email/password + OAuth)
-
-### Technical Features
-- ✅ AI-powered workflows (LangGraph)
-- ✅ Async/await throughout
-- ✅ Connection pooling (HTTP + DB)
-- ✅ Retry logic with exponential backoff
-- ✅ Distributed locking (Redis)
-- ✅ Graceful shutdown
-- ✅ Health checks
-- ✅ Error tracking (Sentry)
-- ✅ Agent tracing (LangSmith)
-- ✅ Encryption (patient phone numbers)
-- ✅ Audit logging
-
----
-
-## 9. What's Out of Scope
-
-### Not Included (Future Enhancements)
-- ❌ Voice calls (only WhatsApp/SMS)
-- ❌ Email reminders (not common in India)
-- ❌ Patient mobile app (WhatsApp is sufficient)
-- ❌ Electronic health records (EHR) integration
-- ❌ Prescription management
-- ❌ Billing/invoicing (only booking payments)
-- ❌ Multi-language UI (English only, messages support Hindi)
-- ❌ Video consultations
-- ❌ Insurance claims
-- ❌ Lab test integration
-
-### Technical Limitations
-- Single region deployment (India)
-- No real-time collaboration (single doctor per tenant)
-- No offline mode (requires internet)
-- No mobile app (web-only)
-
----
-
-## 10. Key Design Decisions
-
-### 1. Why LangGraph for AI Workflows?
-**Decision**: Use LangGraph state machines instead of procedural code
-
-**Rationale**:
-- **Composable**: Easy to add/remove steps
-- **Traceable**: LangSmith integration for debugging
-- **Testable**: Each node can be tested independently
-- **Maintainable**: Clear state transitions
-
-### 2. Why WhatsApp Primary, SMS Fallback?
-**Decision**: Try WhatsApp first, fall back to SMS
-
-**Rationale**:
-- **WhatsApp adoption**: 500M+ users in India
-- **Rich media**: Can send buttons, images, PDFs
-- **Cost**: WhatsApp cheaper than SMS
-- **Reliability**: SMS as backup ensures delivery
-
-### 3. Why Multi-Tenant Architecture?
-**Decision**: Single database with tenant_id isolation
-
-**Rationale**:
-- **Cost-effective**: Shared infrastructure
-- **Scalable**: Add tenants without new deployments
-- **Maintainable**: Single codebase for all tenants
-- **Secure**: Row-level security via tenant_id
-
-### 4. Why Async/Await Throughout?
-**Decision**: Use async Python (FastAPI, SQLAlchemy, httpx)
-
-**Rationale**:
-- **Performance**: Handle 800+ concurrent users per server
-- **Resource efficiency**: Non-blocking I/O
-- **Scalability**: Fewer servers needed
-- **Modern**: Industry best practice
-
-### 5. Why Distributed Locking?
-**Decision**: Redis-based locks for scheduled jobs
-
-**Rationale**:
-- **Prevent duplicates**: Multiple instances don't run same job
-- **Auto-release**: Timeout prevents deadlocks
-- **Simple**: Redis SET NX command
-- **Reliable**: Atomic operations
-
----
-
-## 11. Security & Compliance
-
-### Authentication
-- JWT tokens (HS256, 24-hour expiry)
-- Password hashing (Argon2 - OWASP recommended)
-- OAuth support (Google, Facebook)
-
-### Data Protection
-- Patient phone numbers encrypted (Fernet AES-256)
-- Deterministic hashing for deduplication (HMAC-SHA256)
-- HTTPS enforced in production (Caddy)
-
-### Multi-Tenant Isolation
-- All queries filtered by tenant_id
-- IDOR protection (can't access other tenant's data)
-- Middleware enforces tenant context
-
-### API Security
-- CORS whitelist (no wildcard)
-- Rate limiting (IP-based)
-- Input validation (Pydantic)
-- Security headers (CSP, X-Frame-Options, etc.)
-- Audit logging (all HTTP requests)
-
-### Payment Security
-- Razorpay signature verification (HMAC-SHA256)
-- Webhook signature verification
-- No card data stored (PCI-DSS compliant)
-
----
-
-## 12. Scalability & Performance
-
-### Current Capacity
-- **800+ concurrent doctors** per server
-- **1000+ requests/second**
-- **10,000+ reminders/day** per server
-
-### Scaling Strategy
-- **Horizontal**: Add more API instances behind load balancer
-- **Database**: Connection pooling (15 per worker × 4 workers = 60 connections)
-- **HTTP**: Connection pooling (100 max connections, 20 keepalive)
-- **Workers**: Scale Celery workers independently
-- **Distributed**: Redis locks prevent duplicate jobs
-
-### Performance Optimizations
-- Async/await (non-blocking I/O)
-- Connection pooling (HTTP + DB)
-- Retry logic (exponential backoff)
-- Caching (Redis)
-- Indexes (tenant_id, phone_hash, scheduled_at)
-
----
-
-## 13. Monitoring & Observability
-
-### Error Tracking
-- **Sentry**: Exception tracking, performance monitoring
-- **Structured logging**: JSON logs with tenant context
-
-### Agent Tracing
-- **LangSmith**: Trace AI workflows, debug state transitions
-- **Metadata**: tenant_id, patient_id, reminder_id
-
-### Health Checks
-- `/health`: Basic liveness check
-- `/health/ready`: Readiness check (includes DB)
-- Scheduler heartbeat (file-based)
-
-### Metrics
-- Reminder success rate
-- WhatsApp vs SMS delivery
-- Patient count per tenant
-- Booking conversion rate
-
----
-
-## 14. Deployment Architecture
-
-### Development
-```
-docker-compose up
-  ├─ FastAPI (port 8000) - includes APScheduler in-process
-  ├─ Frontend (port 3000)
-  ├─ PostgreSQL (port 5432)
-  ├─ Redis (port 6379)
-  └─ Worker (Celery) - separate container, same codebase
+                       DOCTOR / FRONTEND                     BACKEND / POSTGRES / GOOGLE
+                       
+  [Local Login]  ──►  POST /api/v1/auth/login  ───────────► Hashed password check (Argon2)
+                                                             Generate JWT Token (HS256, 24h)
+                                                 ◄────────── Return Token + Doctor metadata
+                                                 
+  [Google OAuth] ──►  Click "Login with Google"  ────────►   Redirect to Google OAuth consent screen
+                                                             User grants permission
+                      Google callback with OAuth token  ───► Verify token with Google APIs
+                                                             Create / Find Tenant in DB
+                                                             Generate JWT Token (HS256, 24h)
+                                                 ◄────────── Redirect to Frontend dashboard url with Token
 ```
 
-### Production
+### 8.2 Ingestion & Upload Flow (Dashboard / WhatsApp Upload)
+
 ```
-docker-compose -f docker-compose.prod.yml -f docker-compose.caddy.yml up
-  ├─ Caddy (ports 80, 443) - Automatic HTTPS
-  ├─ FastAPI (internal) - includes APScheduler in-process
-  ├─ Frontend (internal)
-  ├─ Worker (3 replicas) - separate containers, same codebase
-  └─ Redis (AOF persistence)
-
-External:
-  ├─ PostgreSQL (Supabase)
-  └─ Storage (Supabase)
+ DOCTOR                      FRONTEND / WEBHOOK              BACKEND / SUPABASE              LANGGRAPH
+ 
+ [Dashboard] ───────►  POST /api/v1/upload/excel  ───────► Save raw files to Supabase Storage ─┐
+                       or /api/v1/upload/photo                                                │
+                                                                                              ▼
+ [WhatsApp]  ───────►  Meta WhatsApp Media Webhook ──────► Ingest webhook media payload ─────► Ingestion Graph
+                                                                                               ├─ Route File
+                                                                                               ├─ Parse Excel/OCR
+                                                                                               ├─ HMAC-SHA256 Dedup
+                                                                                               └─ DB Persistence
+                                                                                                      │
+                                                                                                      ▼
+                                                 ◄─────── Send results back to sender WhatsApp ◄──────┘
+                                                          ("Processed 10 patients, 2 duplicates")
 ```
 
-**Note**: The scheduler (APScheduler) runs inside the FastAPI process, not as a separate service. The worker runs as a separate Docker container but uses the same codebase (`services/fastapi/`), just with a different entry point (`celery -A app.worker.celery_app worker`).
+### 8.3 In-Process Scheduler & Celery Worker Execution
 
-### Kubernetes (Future)
-- Horizontal Pod Autoscaler (HPA)
-- Persistent Volume Claims (PVC) for Redis
-- ConfigMaps for environment variables
-- Secrets for API keys
-- Ingress for HTTPS
+The scheduler (APScheduler) runs inside the FastAPI process, while background tasks are handled by Celery workers in separate containers.
+
+```
+       APScheduler (FastAPI Process)                       Upstash Redis                      Celery Workers
+       
+  [9:00 AM IST] ──► check distributed lock  ──► [Acquired] ──► Enqueue task  ──► [Broker Queue] ──► Fetch task
+                                                                                                    │
+                                                                                                    ▼
+                                                                                            Execute Send Loop
+                                                                                                    │
+                                                                                                    ▼
+                                                                                            Execute LangGraph
+                                                                                             Notification Graph
+                                                                                                    │
+                                                                                                    ▼
+                                                                                            Update DB Status
+```
+
+#### In-Process APScheduler Configuration
+```python
+# scheduler/jobs.py
+SCHEDULED_JOBS = [
+    {
+        "func": generate_daily_schedules_job,
+        "trigger": "cron",
+        "hour": 0,
+        "minute": 0,
+        "id": "generate_daily_schedules",
+        "name": "Generate Daily Schedules (Midnight)",
+        "replace_existing": True,
+    },
+    {
+        "func": cleanup_expired_reservations_job,
+        "trigger": "interval",
+        "minutes": 5,
+        "id": "cleanup_expired_reservations",
+        "name": "Cleanup Expired Reservations (Every 5 min)",
+        "replace_existing": True,
+    },
+    {
+        "func": dispatch_send_pending_reminders,
+        "trigger": "cron",
+        "hour": 9,
+        "minute": 0,
+        "id": "dispatch_send_pending_reminders",
+        "name": "Dispatch Send Pending Reminders (9:00 AM IST)",
+        "replace_existing": True,
+    },
+]
+```
+
+#### Redis Distributed Locking Helper
+```python
+# scheduler/jobs.py
+async with distributed_lock("job_name", timeout=300) as acquired:
+    if not acquired:
+        return # Skip execution on secondary backend instances
+    await execute_job()
+```
+
+### 8.4 Booking & Payment Flow (Razorpay Integration)
+
+```
+ PATIENT                     FRONTEND / WEBHOOK              BACKEND / DB / RAZORPAY
+ 
+ Opens Booking Link  ─────►  GET Available Slots  ────────► Match selected doctor locations & times
+ 
+ Selects Slot & Info ─────►  POST /booking/reserve ───────► Lock slot (expires in 10 minutes)
+                                                             Generate Razorpay Order API Call
+                                                 ◄────────── Return Razorpay order_id + details
+ 
+ Patient Pays on Razorpay ──► Checkout widget popup
+                               Razorpay webhook callback ───► Verify webhook signature (HMAC-SHA256)
+                                                             Update booking status to CONFIRMED
+                                                             Generate Receipt PDF (ReportLab)
+                                                             Upload PDF to Supabase Storage
+                                                 ◄────────── Return confirmation to patient & SMS link
+```
 
 ---
 
-## 15. Summary
+## 9. External API Integration Specifications
 
-**CareRemind** is a production-ready, AI-powered appointment reminder system for Indian clinics. It combines:
+### 9.1 Meta WhatsApp Business Cloud API
 
-- **Modern async Python** (FastAPI, SQLAlchemy, Celery)
-- **AI workflows** (LangGraph state machines with 3 graphs: Ingestion, Scheduling, Notification)
-- **Reliable messaging** (WhatsApp + SMS with retry and exponential backoff)
-- **Payment integration** (Razorpay with signature verification)
-- **Scalable architecture** (800+ doctors per server, horizontal scaling)
-- **Security-first design** (Argon2 password hashing, AES-256 encryption, IDOR protection)
-- **Graceful degradation** (works even if external services fail)
-- **Unified codebase** (scheduler runs in-process, worker shares same code)
+#### Base Endpoint
+`POST https://graph.facebook.com/v21.0/{phone_number_id}/messages`
 
-### Architecture Highlights
+#### Headers
+- `Authorization`: `Bearer {META_WHATSAPP_TOKEN}`
+- `Content-Type`: `application/json`
 
-**Single Service Design**: The system uses a single FastAPI codebase (`services/fastapi/`) with:
-- **API Server**: FastAPI with APScheduler running in-process
-- **Worker**: Celery workers running in separate containers but using the same codebase
-- **Scheduler**: APScheduler embedded in the FastAPI process (not a separate service)
-- **Distributed Locking**: Redis-based locks prevent duplicate job execution across multiple instances
+#### Text Message Payload
+```json
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "+919876543210",
+  "type": "text",
+  "text": {
+    "body": "Hello Dr. Arjun Mehta's clinic wishes to remind you of your appointment tomorrow at 10:00 AM."
+  }
+}
+```
 
-**Reminder System**: All medical specialties use a consistent 7-day and 30-day follow-up pattern, with specialty-specific pre-visit instructions and message tones.
+#### Interactive Button Reply Message Payload
+```json
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "+919876543210",
+  "type": "interactive",
+  "interactive": {
+    "type": "button",
+    "body": {
+      "text": "Hello from CareRemind. Confirm your appointment tomorrow."
+    },
+    "action": {
+      "buttons": [
+        {
+          "type": "reply",
+          "reply": {
+            "id": "confirm_appt_id_123",
+            "title": "Confirm Booking"
+          }
+        }
+      ]
+    }
+  }
+}
+```
 
-The system is designed to handle high volume, multiple time zones, and unreliable networks typical of Indian healthcare settings.
+### 9.2 Razorpay Payments API
+
+#### Create Order Payload
+- **Endpoint**: `POST https://api.razorpay.com/v1/orders`
+- **Authentication**: Basic Authentication (`key_id:key_secret`)
+```json
+{
+  "amount": 20000,
+  "currency": "INR",
+  "receipt": "receipt_booking_981",
+  "partial_payment": false
+}
+```
+
+#### Verify Payment Signature
+```python
+# booking/service.py
+import hmac
+import hashlib
+
+expected_signature = hmac.new(
+    key=RAZORPAY_SECRET.encode(),
+    msg=f"{razorpay_order_id}|{razorpay_payment_id}".encode(),
+    digestmod=hashlib.sha256
+).hexdigest()
+
+if not hmac.compare_digest(expected_signature, razorpay_signature):
+    raise SignatureVerificationError("Payment signature verification failed")
+```
+
+### 9.3 OpenAI Vision OCR API (GPT-4o-mini)
+
+#### Payload
+- **Endpoint**: `POST https://api.openai.com/v1/chat/completions`
+```json
+{
+  "model": "gpt-4o-mini",
+  "response_format": { "type": "json_object" },
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Identify the patient schedule or register records from this image. Extract columns: name, phone, next_visit_date (YYYY-MM-DD), specialty. Output as a JSON list under the key 'patients'."
+        },
+        {
+          "type": "image_url",
+          "image_url": {
+            "url": "data:image/jpeg;base64,{base64_encoded_image_bytes}"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2026-04-30  
-**Status**: Production-Ready  
-**Next Review**: After first production deployment
+## 10. Security & Compliance Design
+
+### 10.1 Authentication & Multi-Tenancy
+- **Authentication**: Stateless JWT token authentication with a 24-hour expiry using `HS256` signed secrets. Passwords hashed using GPU-resistant `Argon2`.
+- **OAuth Integration**: Supports Google and Facebook logins, returning JWT tokens via URL query parameters on redirection back to the frontend.
+- **Multi-Tenant Isolation**: Row-Level isolation enforced by `tenant_id` context routing. Custom SQL statements dynamically inject:
+  ```python
+  where(Model.tenant_id == current_tenant_id)
+  ```
+  This defends against Insecure Direct Object Reference (IDOR) exploits.
+
+### 10.2 Cryptographic Data Protection
+- **Phone Encryption**: Sensitive patient phone numbers are encrypted in database fields using symmetric cryptography (`Fernet AES-256`) via a shared secret key. Decrypted strictly at runtime before message dispatch.
+- **Deterministic Phone Hashing**: To allow tenant-level deduplication without storing raw phone numbers or running brute-force decryption loops, phone numbers are hashed using a deterministic secret key (`HMAC-SHA256`).
+
+### 10.3 Network & API Hardening
+- **HTTPS Enforced**: Reversed proxied by a Caddy configuration to provide automatic Let's Encrypt SSL certificates.
+- **CORS Whitelists**: Direct client-facing endpoints explicitly configure origin headers, restricting access to designated domains.
+- **Security Headers**: Standard headers injected into response streams via `SecurityHeadersMiddleware`:
+  - `X-Content-Type-Options: nosniff` (mime protection)
+  - `X-Frame-Options: DENY` (anti-clickjacking)
+  - `X-XSS-Protection: 1; mode=block` (browser filter)
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (HSTS)
+- **IP & User Rate Limiting**: Managed by a Redis key increment counter, falling back to open execution if Redis connection fails:
+  - Auth endpoints: 10 requests / minute / IP
+  - Anonymous global: 200 requests / minute / IP
+  - Authenticated user: 1000 requests / minute / user context
+
+---
+
+## 11. Performance Optimizations & Connection Pooling
+
+### 11.1 HTTP Client connection pooling
+The API container establishes a shared `httpx.AsyncClient` lifecycle handler on startup to prevent resource exhaustion from duplicate port bindings.
+
+```python
+# main.py lifespan
+app.state.http_client = httpx.AsyncClient(
+    timeout=30.0,
+    limits=httpx.Limits(
+        max_connections=100,          # Maximum simultaneous sockets
+        max_keepalive_connections=20  # Reusable pooled connections
+    )
+)
+```
+
+### 11.2 Database Session connection pooling
+SQLAlchemy configuration pools database connections to match FastAPI concurrency targets.
+
+```python
+# core/database.py
+engine = create_async_engine(
+    DATABASE_URL,
+    pool_size=15,          # Active persistent connections per Gunicorn worker thread
+    max_overflow=5,        # Maximum overflow connections during spike periods
+    pool_pre_ping=True,    # Verify connection availability prior to issuing statements
+    pool_recycle=3600,     # Cycle connection lifetime every 1 hour to prevent stale sockets
+)
+```
+
+---
+
+## 12. Deployment Architecture
+
+### 12.1 Local Sandbox Environment
+Running the system locally requires Docker and docker-compose. Local databases and Redis services run alongside the web and worker processes.
+
+```yaml
+# docker-compose.yml
+services:
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  api:
+    build: ./services/fastapi
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+  worker:
+    build: ./services/fastapi
+    command: celery -A app.worker.celery_app worker --loglevel=info
+```
+
+### 12.2 Production Environment
+In production, the architecture decouples static web assets, APIs, backends, databases, caching layers, and background tasks.
+
+```
+                  ┌────────────────────┐
+                  │    React Client    │
+                  │   Vercel Hosting   │
+                  └─────────┬──────────┘
+                            │ HTTPS (REST API)
+                            ▼
+              ┌────────────────────────────┐
+              │    Automatic SSL Proxy     │
+              │       Caddy Server         │
+              └─────────────┬──────────────┘
+                            │ Reverse Proxy
+                            ▼
+     ┌──────────────────────────────────────────────┐
+     │           FastAPI API Containers             │
+     │      (Gunicorn runner - 4 Workers)           │
+     └──────────────┬────────────────┬──────────────┘
+                    │                │
+      SQL (Async)   │                │ Enqueue Task
+                    ▼                ▼
+     ┌──────────────────────┐┌──────────────────────┐
+     │ Supabase PostgreSQL  ││   Upstash Redis DB   │
+     │   (Cloud Managed)    ││   (Cloud / TLS)      │
+     └──────────────────────┘└──────────┬───────────┘
+                                        │
+                                        │ Dequeue Task
+                                        ▼
+                            ┌──────────────────────┐
+                            │    Celery Workers    │
+                            │  (3 Replicas Active) │
+                            └──────────────────────┘
+```
+
+- **Static Frontend**: Compiled into optimized production bundles by Vite and served via Vercel for fast page loads.
+- **Caddy Web Server**: Handles ingress path routing and automatically manages TLS certificates via Let's Encrypt.
+- **FastAPI API Server**: Managed by Gunicorn using 4 Async Uvicorn worker threads to maximize CPU utilization. Runs APScheduler inside the process memory.
+- **Celery Worker Replicas**: Decoupled cluster running 3 active replicas processing tasks asynchronously from the Upstash Redis broker queue.
+
+---
+
+## 13. Scope Matrix
+
+### In Scope
+- Multi-tenant doctor directory registration and authentication.
+- Bulk patient lists upload with spreadsheet analysis and image OCR parsing.
+- Automated WhatsApp notifications scheduling with specialty-specific rules.
+- Patient booking links, calendar slot reservations, and payments.
+- Automatic generation and delivery of daily schedules (PDF) to the doctor's WhatsApp.
+- Rate limiting, IDOR prevention, and cryptographic patient record protection (encryption and hashing).
+- Core UI pages with mobile responsiveness.
+
+### Out of Scope
+- Voice call reminders or interactive voice response (IVR).
+- Custom patient mobile applications (WhatsApp is the primary interface).
+- Electronic Health Record (EHR) systems, prescription management, and clinical charting.
+- Storing debit/credit card credentials (delegated entirely to Razorpay).
+- Multi-practitioner clinic environments (supported users are individual doctors).
+- Local offline mode (requires active internet access).
